@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<!-- Hero Section -->
+<div class="row justify-content-center align-items-center mb-5" style="min-height: 60vh;">
+  <div class="col-md-8 text-center">
+    <div class="card shadow-lg p-5">
+      <div class="mb-4">
+        <i class="fas fa-project-diagram" style="font-size: 4rem; color: #A8DADC; margin-bottom: 1rem;"></i>
+      </div>
+      <h1 class="display-4 mb-3 fw-bold" style="color: #1D3557;">Welcome to ProjectMngmt</h1>
+      <p class="lead mb-4 fs-5" style="color: #457B9D;">🚀 The ultimate platform for seamless project collaboration and task management</p>
+      <div class="d-flex justify-content-center gap-3">
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4">
+          <i class="fas fa-rocket me-2"></i>Get Started
+        </a>
+        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">
+          <i class="fas fa-sign-in-alt me-2"></i>Login
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mb-5">
+  <div class="col-12">
+    <h2 class="text-center mb-5" style="color: #1D3557;">
+      <i class="fas fa-star me-2"></i>Why Choose ProjectMngmt?
+    </h2>
+  </div>
+  
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="mb-3">
+          <i class="fas fa-users fa-3x" style="color: #A8DADC;"></i>
+        </div>
+        <h5 class="card-title" style="color: #1D3557;">Team Collaboration</h5>
+        <p class="card-text">Invite team members, assign tasks, and work together seamlessly. Real-time updates keep everyone in sync.</p>
+        <ul class="list-unstyled text-start">
+          <li><i class="fas fa-check text-success me-2"></i>Easy member invitations</li>
+          <li><i class="fas fa-check text-success me-2"></i>Role-based access control</li>
+          <li><i class="fas fa-check text-success me-2"></i>Team communication tools</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="mb-3">
+          <i class="fas fa-tasks fa-3x" style="color: #A8DADC;"></i>
+        </div>
+        <h5 class="card-title" style="color: #1D3557;">Smart Task Management</h5>
+        <p class="card-text">Create, assign, and track tasks with ease. Monitor progress and deadlines with intuitive dashboards.</p>
+        <ul class="list-unstyled text-start">
+          <li><i class="fas fa-check text-success me-2"></i>Task assignment & tracking</li>
+          <li><i class="fas fa-check text-success me-2"></i>Progress visualization</li>
+          <li><i class="fas fa-check text-success me-2"></i>Deadline management</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="mb-3">
+          <i class="fas fa-chart-line fa-3x" style="color: #A8DADC;"></i>
+        </div>
+        <h5 class="card-title" style="color: #1D3557;">Progress Analytics</h5>
+        <p class="card-text">Get insights into project performance with detailed analytics and progress tracking.</p>
+        <ul class="list-unstyled text-start">
+          <li><i class="fas fa-check text-success me-2"></i>Real-time progress tracking</li>
+          <li><i class="fas fa-check text-success me-2"></i>Performance analytics</li>
+          <li><i class="fas fa-check text-success me-2"></i>Completion statistics</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="row mb-5">
+  <div class="col-12">
+    <h2 class="text-center mb-5" style="color: #1D3557;">
+      <i class="fas fa-cogs me-2"></i>How It Works
+    </h2>
+  </div>
+  
+  <div class="col-md-3 text-center mb-4">
+    <div class="card border-0 bg-transparent">
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+            <span class="text-white fw-bold fs-4">1</span>
+          </div>
+        </div>
+        <h5 style="color: #1D3557;">Create Project</h5>
+        <p class="text-muted">Start by creating a new project and setting your goals</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3 text-center mb-4">
+    <div class="card border-0 bg-transparent">
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+            <span class="text-white fw-bold fs-4">2</span>
+          </div>
+        </div>
+        <h5 style="color: #1D3557;">Invite Team</h5>
+        <p class="text-muted">Invite team members via email to collaborate</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3 text-center mb-4">
+    <div class="card border-0 bg-transparent">
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+            <span class="text-white fw-bold fs-4">3</span>
+          </div>
+        </div>
+        <h5 style="color: #1D3557;">Assign Tasks</h5>
+        <p class="text-muted">Create and assign tasks to team members</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3 text-center mb-4">
+    <div class="card border-0 bg-transparent">
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+            <span class="text-white fw-bold fs-4">4</span>
+          </div>
+        </div>
+        <h5 style="color: #1D3557;">Track Progress</h5>
+        <p class="text-muted">Monitor progress and celebrate success</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Benefits Section -->
+<div class="row mb-5">
+  <div class="col-12">
+    <h2 class="text-center mb-5" style="color: #1D3557;">
+      <i class="fas fa-gift me-2"></i>Key Benefits
+    </h2>
+  </div>
+  
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fas fa-clock fa-2x me-3" style="color: #A8DADC;"></i>
+          <h5 class="mb-0" style="color: #1D3557;">Save Time</h5>
+        </div>
+        <p class="card-text">Streamline your workflow with intuitive tools that help you focus on what matters most.</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fas fa-shield-alt fa-2x me-3" style="color: #A8DADC;"></i>
+          <h5 class="mb-0" style="color: #1D3557;">Secure & Reliable</h5>
+        </div>
+        <p class="card-text">Your data is protected with enterprise-grade security and reliable cloud infrastructure.</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fas fa-mobile-alt fa-2x me-3" style="color: #A8DADC;"></i>
+          <h5 class="mb-0" style="color: #1D3557;">Mobile Friendly</h5>
+        </div>
+        <p class="card-text">Access your projects from anywhere with our responsive design that works on all devices.</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fas fa-chart-pie fa-2x me-3" style="color: #A8DADC;"></i>
+          <h5 class="mb-0" style="color: #1D3557;">Smart Analytics</h5>
+        </div>
+        <p class="card-text">Get valuable insights with detailed analytics and progress tracking for better decision making.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Call to Action -->
+<div class="row">
+  <div class="col-12">
+    <div class="card text-center" style="background: linear-gradient(135deg, #A8DADC, #9BCFD1);">
+      <div class="card-body p-5">
+        <h3 class="mb-3" style="color: #1D3557;">Ready to Transform Your Project Management?</h3>
+        <p class="lead mb-4" style="color: #1D3557;">Join thousands of teams who trust ProjectMngmt for their collaboration needs.</p>
+        <div class="d-flex justify-content-center gap-3">
+          <a href="{{ url_for('register') }}" class="btn btn-outline-secondary btn-lg px-4">
+            <i class="fas fa-user-plus me-2"></i>Start Free Trial
+          </a>
+          <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4">
+            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
