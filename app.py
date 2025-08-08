@@ -109,9 +109,18 @@ def test_mongo():
 def register():
     try:
         if request.method == "POST":
+            logger.info("Register POST request received")
             name = request.form.get("name")
             email = request.form.get("email")
             password = request.form.get("password")
+            
+            logger.info(f"Registration attempt for email: {email}")
+            
+            # Check if MongoDB is connected
+            if mongo is None:
+                logger.error("MongoDB not connected")
+                flash("Database connection error. Please try again.")
+                return render_template("register.html")
             
             # Check if user already exists
             existing_user = mongo.db.users.find_one({"email": email})
@@ -128,7 +137,9 @@ def register():
                 "joined_projects": []
             }
             
+            logger.info("Attempting to insert new user")
             user_id = mongo.db.users.insert_one(new_user).inserted_id
+            logger.info(f"User created with ID: {user_id}")
             
             # Log in the new user
             user_data = mongo.db.users.find_one({"_id": user_id})
@@ -141,15 +152,24 @@ def register():
         return render_template("register.html")
     except Exception as e:
         logger.error(f"Error in register route: {e}")
-        flash("Registration failed. Please try again.")
+        flash(f"Registration failed: {str(e)}")
         return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     try:
         if request.method == "POST":
+            logger.info("Login POST request received")
             email = request.form.get("email")
             password = request.form.get("password")
+            
+            logger.info(f"Login attempt for email: {email}")
+            
+            # Check if MongoDB is connected
+            if mongo is None:
+                logger.error("MongoDB not connected")
+                flash("Database connection error. Please try again.")
+                return render_template("login.html")
             
             user_data = mongo.db.users.find_one({"email": email})
             
@@ -164,7 +184,7 @@ def login():
         return render_template("login.html")
     except Exception as e:
         logger.error(f"Error in login route: {e}")
-        flash("Login failed. Please try again.")
+        flash(f"Login failed: {str(e)}")
         return render_template("login.html")
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -803,6 +823,36 @@ def project_progress(project_id):
     except Exception as e:
         logger.error(f"Error in project_progress route: {e}")
         return "Error loading project progress", 500
+
+@app.route("/debug")
+def debug_info():
+    """Debug endpoint to check app configuration"""
+    try:
+        debug_info = {
+            "mongo_connected": mongo is not None,
+            "mongo_uri_length": len(mongo_uri) if mongo_uri else 0,
+            "mongo_uri_preview": mongo_uri[:30] + "..." if mongo_uri and len(mongo_uri) > 30 else mongo_uri,
+            "secret_key_set": bool(app.config.get("SECRET_KEY")),
+            "secret_key_length": len(app.config.get("SECRET_KEY", "")) if app.config.get("SECRET_KEY") else 0,
+            "environment_variables": {
+                "MONGO_URI": "SET" if os.environ.get("MONGO_URI") else "NOT SET",
+                "SECRET_KEY": "SET" if os.environ.get("SECRET_KEY") else "NOT SET"
+            }
+        }
+        
+        if mongo is not None:
+            try:
+                # Test MongoDB connection
+                mongo.db.command('ping')
+                debug_info["mongo_ping"] = "SUCCESS"
+            except Exception as e:
+                debug_info["mongo_ping"] = f"FAILED: {str(e)}"
+        else:
+            debug_info["mongo_ping"] = "NOT CONNECTED"
+        
+        return jsonify(debug_info)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Mobile PWA Configuration
 app.config['PREFERRED_URL_SCHEME'] = 'https'
