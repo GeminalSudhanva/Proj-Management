@@ -22,16 +22,11 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-secret-key")
 mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/projectMngmt")
 logger.info(f"MongoDB URI: {mongo_uri}")
 
-# Fix SSL issues by adding proper parameters
+# Simplify the connection string for better compatibility
 if mongo_uri and "mongodb+srv://" in mongo_uri:
-    if "?" in mongo_uri:
-        mongo_uri += "&ssl=true&ssl_cert_reqs=CERT_NONE&tlsAllowInvalidCertificates=true&retryWrites=true&w=majority"
-    else:
-        mongo_uri += "?ssl=true&ssl_cert_reqs=CERT_NONE&tlsAllowInvalidCertificates=true&retryWrites=true&w=majority"
-
-# Alternative connection string if the above doesn't work
-if not mongo_uri or mongo_uri == "mongodb://localhost:27017/projectMngmt":
-    mongo_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority&ssl=true&ssl_cert_reqs=CERT_NONE&tlsAllowInvalidCertificates=true"
+    # Remove any existing parameters and add only essential ones
+    base_uri = mongo_uri.split("?")[0]
+    mongo_uri = f"{base_uri}/projectMngmt?retryWrites=true&w=majority"
 
 app.config["MONGO_URI"] = mongo_uri
 
@@ -40,7 +35,17 @@ try:
     logger.info("MongoDB connection initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize MongoDB: {e}")
-    mongo = None
+    # Try alternative connection method
+    try:
+        from pymongo import MongoClient
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+        # Test the connection
+        client.admin.command('ping')
+        mongo = PyMongo(app)
+        logger.info("MongoDB connection initialized with alternative method")
+    except Exception as e2:
+        logger.error(f"Alternative MongoDB connection also failed: {e2}")
+        mongo = None
 
 # Initialize Login Manager
 login_manager = LoginManager()
