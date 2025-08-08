@@ -21,6 +21,18 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-secret-key")
 # MongoDB Configuration
 mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/projectMngmt")
 logger.info(f"MongoDB URI: {mongo_uri}")
+
+# Fix SSL issues by adding proper parameters
+if mongo_uri and "mongodb+srv://" in mongo_uri:
+    if "?" in mongo_uri:
+        mongo_uri += "&ssl=true&ssl_cert_reqs=CERT_NONE&tlsAllowInvalidCertificates=true&retryWrites=true&w=majority"
+    else:
+        mongo_uri += "?ssl=true&ssl_cert_reqs=CERT_NONE&tlsAllowInvalidCertificates=true&retryWrites=true&w=majority"
+
+# Alternative connection string if the above doesn't work
+if not mongo_uri or mongo_uri == "mongodb://localhost:27017/projectMngmt":
+    mongo_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority&ssl=true&ssl_cert_reqs=CERT_NONE&tlsAllowInvalidCertificates=true"
+
 app.config["MONGO_URI"] = mongo_uri
 
 try:
