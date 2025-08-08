@@ -80,57 +80,92 @@ def health_check():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/test-mongo")
+def test_mongo():
+    """Test MongoDB connection and basic operations"""
+    try:
+        if mongo is None:
+            return jsonify({"status": "error", "message": "MongoDB not connected"}), 500
+        
+        # Test database connection
+        mongo.db.command('ping')
+        
+        # Test collection operations
+        test_collection = mongo.db.test_collection
+        test_doc = {"test": "data", "timestamp": datetime.now()}
+        result = test_collection.insert_one(test_doc)
+        test_collection.delete_one({"_id": result.inserted_id})
+        
+        return jsonify({
+            "status": "success", 
+            "message": "MongoDB connection and operations working",
+            "mongo_uri": mongo_uri[:50] + "..." if len(mongo_uri) > 50 else mongo_uri
+        })
+    except Exception as e:
+        logger.error(f"MongoDB test failed: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        password = request.form.get("password")
+    try:
+        if request.method == "POST":
+            name = request.form.get("name")
+            email = request.form.get("email")
+            password = request.form.get("password")
+            
+            # Check if user already exists
+            existing_user = mongo.db.users.find_one({"email": email})
+            if existing_user:
+                flash("Email already registered. Please login.")
+                return redirect(url_for("login"))
+            
+            # Create new user
+            hashed_password = generate_password_hash(password)
+            new_user = {
+                "name": name,
+                "email": email,
+                "password_hash": hashed_password,
+                "joined_projects": []
+            }
+            
+            user_id = mongo.db.users.insert_one(new_user).inserted_id
+            
+            # Log in the new user
+            user_data = mongo.db.users.find_one({"_id": user_id})
+            user = User(user_data)
+            login_user(user)
+            
+            flash("Registration successful!")
+            return redirect(url_for("dashboard"))
         
-        # Check if user already exists
-        existing_user = mongo.db.users.find_one({"email": email})
-        if existing_user:
-            flash("Email already registered. Please login.")
-            return redirect(url_for("login"))
-        
-        # Create new user
-        hashed_password = generate_password_hash(password)
-        new_user = {
-            "name": name,
-            "email": email,
-            "password_hash": hashed_password,
-            "joined_projects": []
-        }
-        
-        user_id = mongo.db.users.insert_one(new_user).inserted_id
-        
-        # Log in the new user
-        user_data = mongo.db.users.find_one({"_id": user_id})
-        user = User(user_data)
-        login_user(user)
-        
-        flash("Registration successful!")
-        return redirect(url_for("dashboard"))
-    
-    return render_template("register.html")
+        return render_template("register.html")
+    except Exception as e:
+        logger.error(f"Error in register route: {e}")
+        flash("Registration failed. Please try again.")
+        return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+    try:
+        if request.method == "POST":
+            email = request.form.get("email")
+            password = request.form.get("password")
+            
+            user_data = mongo.db.users.find_one({"email": email})
+            
+            if user_data and check_password_hash(user_data["password_hash"], password):
+                user = User(user_data)
+                login_user(user)
+                flash("Login successful!")
+                return redirect(url_for("dashboard"))
+            else:
+                flash("Invalid email or password.")
         
-        user_data = mongo.db.users.find_one({"email": email})
-        
-        if user_data and check_password_hash(user_data["password_hash"], password):
-            user = User(user_data)
-            login_user(user)
-            flash("Login successful!")
-            return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid email or password.")
-    
-    return render_template("login.html")
+        return render_template("login.html")
+    except Exception as e:
+        logger.error(f"Error in login route: {e}")
+        flash("Login failed. Please try again.")
+        return render_template("login.html")
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
