@@ -30,50 +30,72 @@ if mongo_uri and "mongodb+srv://" in mongo_uri:
 
 app.config["MONGO_URI"] = mongo_uri
 
-# Try multiple connection methods
-mongo = None
-connection_methods = []
-
-try:
-    # Method 1: Standard PyMongo
-    logger.info("Attempting Method 1: Standard PyMongo")
-    mongo = PyMongo(app)
-    mongo.db.command('ping')
-    logger.info("Method 1 SUCCESS: Standard PyMongo")
-    connection_methods.append("Standard PyMongo - SUCCESS")
-except Exception as e1:
-    logger.error(f"Method 1 FAILED: {e1}")
-    connection_methods.append(f"Standard PyMongo - FAILED: {str(e1)}")
+# Initialize MongoDB connection with multiple fallback methods
+def initialize_mongodb():
+    """Initialize MongoDB connection with multiple fallback methods"""
+    connection_methods = []
     
+    # Method 1: Standard PyMongo
     try:
-        # Method 2: Direct MongoClient with timeout
+        logger.info("Attempting Method 1: Standard PyMongo")
+        mongo_instance = PyMongo(app)
+        mongo_instance.db.command('ping')
+        logger.info("Method 1 SUCCESS: Standard PyMongo")
+        connection_methods.append("Standard PyMongo - SUCCESS")
+        return mongo_instance, connection_methods
+    except Exception as e1:
+        logger.error(f"Method 1 FAILED: {e1}")
+        connection_methods.append(f"Standard PyMongo - FAILED: {str(e1)}")
+    
+    # Method 2: Direct MongoClient with timeout
+    try:
         logger.info("Attempting Method 2: Direct MongoClient")
         from pymongo import MongoClient
         client = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000, connectTimeoutMS=10000)
         client.admin.command('ping')
-        mongo = PyMongo(app)
+        mongo_instance = PyMongo(app)
         logger.info("Method 2 SUCCESS: Direct MongoClient")
         connection_methods.append("Direct MongoClient - SUCCESS")
+        return mongo_instance, connection_methods
     except Exception as e2:
         logger.error(f"Method 2 FAILED: {e2}")
         connection_methods.append(f"Direct MongoClient - FAILED: {str(e2)}")
-        
-        try:
-            # Method 3: Alternative connection string format
-            logger.info("Attempting Method 3: Alternative connection string")
-            alt_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority&ssl=true"
-            app.config["MONGO_URI"] = alt_uri
-            mongo = PyMongo(app)
-            mongo.db.command('ping')
-            logger.info("Method 3 SUCCESS: Alternative connection string")
-            connection_methods.append("Alternative connection string - SUCCESS")
-        except Exception as e3:
-            logger.error(f"Method 3 FAILED: {e3}")
-            connection_methods.append(f"Alternative connection string - FAILED: {str(e3)}")
-            mongo = None
+    
+    # Method 3: Alternative connection string format
+    try:
+        logger.info("Attempting Method 3: Alternative connection string")
+        alt_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority&ssl=true"
+        app.config["MONGO_URI"] = alt_uri
+        mongo_instance = PyMongo(app)
+        mongo_instance.db.command('ping')
+        logger.info("Method 3 SUCCESS: Alternative connection string")
+        connection_methods.append("Alternative connection string - SUCCESS")
+        return mongo_instance, connection_methods
+    except Exception as e3:
+        logger.error(f"Method 3 FAILED: {e3}")
+        connection_methods.append(f"Alternative connection string - FAILED: {str(e3)}")
+    
+    # Method 4: Hardcoded connection string
+    try:
+        logger.info("Attempting Method 4: Hardcoded connection string")
+        hardcoded_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority"
+        app.config["MONGO_URI"] = hardcoded_uri
+        mongo_instance = PyMongo(app)
+        mongo_instance.db.command('ping')
+        logger.info("Method 4 SUCCESS: Hardcoded connection string")
+        connection_methods.append("Hardcoded connection string - SUCCESS")
+        return mongo_instance, connection_methods
+    except Exception as e4:
+        logger.error(f"Method 4 FAILED: {e4}")
+        connection_methods.append(f"Hardcoded connection string - FAILED: {str(e4)}")
+    
+    logger.error("All MongoDB connection methods failed")
+    return None, connection_methods
+
+# Initialize MongoDB
+mongo, connection_methods = initialize_mongodb()
 
 if mongo is None:
-    logger.error("All MongoDB connection methods failed")
     logger.error(f"Connection attempts: {connection_methods}")
 else:
     logger.info("MongoDB connection established successfully")
@@ -886,7 +908,7 @@ def debug_info():
                 "MONGO_URI": "SET" if os.environ.get("MONGO_URI") else "NOT SET",
                 "SECRET_KEY": "SET" if os.environ.get("SECRET_KEY") else "NOT SET"
             },
-            "connection_methods_tried": connection_methods if 'connection_methods' in locals() else []
+            "connection_methods_tried": connection_methods
         }
         
         if mongo is not None:
