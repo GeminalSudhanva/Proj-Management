@@ -1,0 +1,218 @@
+/* Mobile-specific styles for Project Management App */
+
+/* Mobile-first responsive design */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 10px;
+  }
+  
+  .card {
+    margin-bottom: 15px;
+  }
+  
+  .btn {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  /* Mobile navigation */
+  .navbar-brand {
+    font-size: 18px;
+  }
+  
+  .navbar-nav .nav-link {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  /* Mobile project cards */
+  .col-md-4 {
+    margin-bottom: 15px;
+  }
+  
+  .card-body {
+    padding: 15px;
+  }
+  
+  /* Mobile task cards */
+  .col-md-6 {
+    margin-bottom: 15px;
+  }
+  
+  /* Mobile forms */
+  .form-control {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px;
+  }
+  
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  /* Mobile buttons */
+  .d-flex.gap-2 {
+    gap: 8px !important;
+  }
+  
+  .btn-group {
+    flex-direction: column;
+  }
+  
+  .btn-group .btn {
+    margin-bottom: 5px;
+  }
+  
+  /* Mobile alerts */
+  .alert {
+    margin-bottom: 15px;
+    padding: 12px;
+  }
+  
+  /* Mobile tables */
+  .table-responsive {
+    font-size: 14px;
+  }
+  
+  /* Mobile modals */
+  .modal-dialog {
+    margin: 10px;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  /* Mobile footer */
+  footer {
+    margin-top: 30px;
+    padding: 15px 0;
+  }
+  
+  /* Touch-friendly elements */
+  .nav-link, .btn, .form-control {
+    min-height: 44px; /* iOS minimum touch target */
+  }
+  
+  /* Mobile-specific spacing */
+  .mb-4 {
+    margin-bottom: 20px !important;
+  }
+  
+  .mt-4 {
+    margin-top: 20px !important;
+  }
+  
+  .py-5 {
+    padding-top: 30px !important;
+    padding-bottom: 30px !important;
+  }
+  
+  /* Mobile list items */
+  .list-group-item {
+    padding: 12px 15px;
+  }
+  
+  /* Mobile badges */
+  .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  /* Mobile icons */
+  .fas, .fa {
+    font-size: 14px;
+  }
+  
+  /* Mobile text */
+  h1 { font-size: 24px; }
+  h2 { font-size: 22px; }
+  h3 { font-size: 20px; }
+  h4 { font-size: 18px; }
+  h5 { font-size: 16px; }
+  h6 { font-size: 14px; }
+  
+  /* Mobile progress bars */
+  .progress {
+    height: 20px;
+  }
+  
+  /* Mobile dropdowns */
+  .dropdown-menu {
+    font-size: 14px;
+  }
+  
+  /* Mobile tooltips */
+  .tooltip {
+    font-size: 12px;
+  }
+}
+
+/* PWA specific styles */
+@media (display-mode: standalone) {
+  /* Hide browser UI elements when in standalone mode */
+  .navbar {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+  
+  .card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+  
+  .navbar-dark {
+    background-color: #0d6efd !important;
+  }
+  
+  .form-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #ffffff;
+  }
+  
+  .form-control:focus {
+    background-color: #2d2d2d;
+    border-color: #0d6efd;
+    color: #ffffff;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .navbar {
+    padding: 5px 15px;
+  }
+  
+  .container-fluid {
+    padding: 5px;
+  }
+  
+  .card {
+    margin-bottom: 10px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .btn, .form-control, .card {
+    border-width: 0.5px;
+  }
+} 

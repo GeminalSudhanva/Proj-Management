@@ -83,9 +83,16 @@
                         No deadline set
                       {% endif %}
                     </small>
-                    <a href="{{ url_for('view_project', project_id=project._id) }}" class="btn btn-outline-primary btn-sm">
-                      <i class="fas fa-eye me-1"></i>View
-                    </a>
+                    <div class="d-flex gap-1">
+                      <a href="{{ url_for('view_project', project_id=project._id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye me-1"></i>View
+                      </a>
+                      {% if current_user.is_authenticated and current_user.id == project.created_by %}
+                      <a href="{{ url_for('delete_project', project_id=project._id) }}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash me-1"></i>Delete
+                      </a>
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
               </div>

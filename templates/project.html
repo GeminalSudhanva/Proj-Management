@@ -28,6 +28,9 @@
               <a href="{{ url_for('create_task', project_id=project._id) }}" class="btn btn-primary btn-sm">
                 <i class="fas fa-plus me-1"></i>Create Task
               </a>
+              <a href="{{ url_for('delete_project', project_id=project._id) }}" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash me-1"></i>Delete Project
+              </a>
               {% endif %}
               <a href="{{ url_for('project_progress', project_id=project._id) }}" class="btn btn-info btn-sm">
                 <i class="fas fa-chart-line me-1"></i>View Progress

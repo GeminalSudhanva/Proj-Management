@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -101,117 +101,6 @@ def login():
     
     return render_template("login.html")
 
-@app.route("/forgot-password", methods=["GET", "POST"])
-def forgot_password():
-    if request.method == "POST":
-        email = request.form.get("email")
-        
-        # Check if user exists
-        user_data = mongo.db.users.find_one({"email": email})
-        
-        if user_data:
-            # Generate a simple reset token (in production, use a more secure method)
-            import secrets
-            reset_token = secrets.token_urlsafe(32)
-            
-            # Store reset token with expiration (24 hours)
-            from datetime import datetime, timedelta
-            reset_expires = datetime.now() + timedelta(hours=24)
-            
-            mongo.db.users.update_one(
-                {"email": email},
-                {
-                    "$set": {
-                        "reset_token": reset_token,
-                        "reset_expires": reset_expires
-                    }
-                }
-            )
-            
-            flash("Password reset instructions have been sent to your email.")
-            flash("For demo purposes, your reset link is:")
-            flash(f"http://127.0.0.1:5000/reset-password/{reset_token}")
-            return redirect(url_for("login"))
-        else:
-            flash("Email not found. Please check your email address.")
-    
-    return render_template("forgot_password.html")
-
-@app.route("/reset-password/<token>", methods=["GET", "POST"])
-def reset_password(token):
-    # Find user with this reset token
-    user_data = mongo.db.users.find_one({
-        "reset_token": token,
-        "reset_expires": {"$gt": datetime.now()}
-    })
-    
-    if not user_data:
-        flash("Invalid or expired reset token.")
-        return redirect(url_for("login"))
-    
-    if request.method == "POST":
-        new_password = request.form.get("new_password")
-        confirm_password = request.form.get("confirm_password")
-        
-        if new_password != confirm_password:
-            flash("Passwords do not match.")
-            return render_template("reset_password.html", token=token)
-        
-        if len(new_password) < 6:
-            flash("Password must be at least 6 characters long.")
-            return render_template("reset_password.html", token=token)
-        
-        # Update password and clear reset token
-        hashed_password = generate_password_hash(new_password, method='sha256')
-        mongo.db.users.update_one(
-            {"_id": user_data["_id"]},
-            {
-                "$set": {"password_hash": hashed_password},
-                "$unset": {"reset_token": "", "reset_expires": ""}
-            }
-        )
-        
-        flash("Password has been reset successfully. You can now login with your new password.")
-        return redirect(url_for("login"))
-    
-    return render_template("reset_password.html", token=token)
-
-@app.route("/change-password", methods=["GET", "POST"])
-@login_required
-def change_password():
-    if request.method == "POST":
-        current_password = request.form.get("current_password")
-        new_password = request.form.get("new_password")
-        confirm_password = request.form.get("confirm_password")
-        
-        # Verify current password
-        user_data = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
-        if not check_password_hash(user_data["password_hash"], current_password):
-            flash("Current password is incorrect.")
-            return render_template("change_password.html")
-        
-        # Check if new passwords match
-        if new_password != confirm_password:
-            flash("New passwords do not match.")
-            return render_template("change_password.html")
-        
-        # Check password length
-        if len(new_password) < 6:
-            flash("Password must be at least 6 characters long.")
-            return render_template("change_password.html")
-        
-        # Update password
-        hashed_password = generate_password_hash(new_password, method='sha256')
-        mongo.db.users.update_one(
-            {"_id": ObjectId(current_user.id)},
-            {"$set": {"password_hash": hashed_password}}
-        )
-        
-        flash("Password changed successfully!")
-        return redirect(url_for("dashboard"))
-    
-    return render_template("change_password.html")
-
 @app.route("/logout")
 @login_required
 def logout():
@@ -313,55 +202,6 @@ def view_project(project_id):
         done_tasks=done_tasks,
         team_members=team_members
     )
-
-@app.route("/project/<project_id>/delete", methods=["GET", "POST"])
-@login_required
-def delete_project(project_id):
-    project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
-    
-    if not project:
-        flash("Project not found.")
-        return redirect(url_for("dashboard"))
-    
-    # Check if user is the project creator (leader)
-    if project["created_by"] != current_user.id:
-        flash("Only the project creator can delete this project.")
-        return redirect(url_for("view_project", project_id=project_id))
-    
-    if request.method == "POST":
-        # Get all tasks for this project
-        tasks = list(mongo.db.tasks.find({"project_id": project_id}))
-        
-        # Check if all tasks are completed
-        incomplete_tasks = [task for task in tasks if task["status"] != "Done"]
-        
-        if incomplete_tasks:
-            flash("Cannot delete project. All tasks must be completed first.")
-            return redirect(url_for("view_project", project_id=project_id))
-        
-        # Delete all tasks associated with this project
-        mongo.db.tasks.delete_many({"project_id": project_id})
-        
-        # Delete all invitations for this project
-        mongo.db.invitations.delete_many({"project_id": project_id})
-        
-        # Remove project from all users' joined_projects
-        mongo.db.users.update_many(
-            {"joined_projects": project_id},
-            {"$pull": {"joined_projects": project_id}}
-        )
-        
-        # Delete the project
-        mongo.db.projects.delete_one({"_id": ObjectId(project_id)})
-        
-        flash("Project deleted successfully!")
-        return redirect(url_for("dashboard"))
-    
-    # Get tasks for confirmation
-    tasks = list(mongo.db.tasks.find({"project_id": project_id}))
-    incomplete_tasks = [task for task in tasks if task["status"] != "Done"]
-    
-    return render_template("delete_project.html", project=project, incomplete_tasks=incomplete_tasks)
 
 @app.route("/project/<project_id>/invite", methods=["GET", "POST"])
 @login_required
@@ -693,19 +533,6 @@ def project_progress(project_id):
         completion_percentage=completion_percentage,
         team_members=team_members
     )
-
-# Mobile PWA Configuration
-app.config['PREFERRED_URL_SCHEME'] = 'https'
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache for static files
-
-# Add mobile-specific routes
-@app.route('/manifest.json')
-def manifest():
-    return app.send_static_file('manifest.json')
-
-@app.route('/sw.js')
-def service_worker():
-    return app.send_static_file('sw.js')
 
 if __name__ == "__main__":
     app.run(debug=True)
