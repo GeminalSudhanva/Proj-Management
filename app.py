@@ -38,75 +38,74 @@ def initialize_mongodb():
     """Initialize MongoDB connection with multiple fallback methods"""
     connection_methods = []
     
-    # Method 1: Standard PyMongo with SSL disabled
+    # Method 1: Standard PyMongo (let it handle SSL automatically)
     try:
-        logger.info("Attempting Method 1: Standard PyMongo with SSL disabled")
+        logger.info("Attempting Method 1: Standard PyMongo")
         mongo_instance = PyMongo(app)
         mongo_instance.db.command('ping')
-        logger.info("Method 1 SUCCESS: Standard PyMongo with SSL disabled")
-        connection_methods.append("Standard PyMongo with SSL disabled - SUCCESS")
+        logger.info("Method 1 SUCCESS: Standard PyMongo")
+        connection_methods.append("Standard PyMongo - SUCCESS")
         return mongo_instance, connection_methods
     except Exception as e1:
         logger.error(f"Method 1 FAILED: {e1}")
-        connection_methods.append(f"Standard PyMongo with SSL disabled - FAILED: {str(e1)}")
+        connection_methods.append(f"Standard PyMongo - FAILED: {str(e1)}")
     
-    # Method 2: Direct MongoClient with SSL disabled
+    # Method 2: Direct MongoClient with minimal SSL settings
     try:
-        logger.info("Attempting Method 2: Direct MongoClient with SSL disabled")
+        logger.info("Attempting Method 2: Direct MongoClient with minimal SSL")
         from pymongo import MongoClient
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000, connectTimeoutMS=10000, ssl=False, tlsAllowInvalidCertificates=True)
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000, connectTimeoutMS=10000)
         client.admin.command('ping')
         mongo_instance = PyMongo(app)
-        logger.info("Method 2 SUCCESS: Direct MongoClient with SSL disabled")
-        connection_methods.append("Direct MongoClient with SSL disabled - SUCCESS")
+        logger.info("Method 2 SUCCESS: Direct MongoClient with minimal SSL")
+        connection_methods.append("Direct MongoClient with minimal SSL - SUCCESS")
         return mongo_instance, connection_methods
     except Exception as e2:
         logger.error(f"Method 2 FAILED: {e2}")
-        connection_methods.append(f"Direct MongoClient with SSL disabled - FAILED: {str(e2)}")
+        connection_methods.append(f"Direct MongoClient with minimal SSL - FAILED: {str(e2)}")
     
-    # Method 3: Clean connection string without SSL
+    # Method 3: Alternative connection string without SSL parameters
     try:
-        logger.info("Attempting Method 3: Clean connection string without SSL")
-        clean_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority"
-        app.config["MONGO_URI"] = clean_uri
-        mongo_instance = PyMongo(app)
-        mongo_instance.db.command('ping')
-        logger.info("Method 3 SUCCESS: Clean connection string without SSL")
-        connection_methods.append("Clean connection string without SSL - SUCCESS")
-        return mongo_instance, connection_methods
-    except Exception as e3:
-        logger.error(f"Method 3 FAILED: {e3}")
-        connection_methods.append(f"Clean connection string without SSL - FAILED: {str(e3)}")
-    
-    # Method 4: Direct connection with SSL disabled
-    try:
-        logger.info("Attempting Method 4: Direct connection with SSL disabled")
-        from pymongo import MongoClient
-        clean_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority"
-        client = MongoClient(clean_uri, serverSelectionTimeoutMS=10000, connectTimeoutMS=10000, ssl=False, tlsAllowInvalidCertificates=True)
-        client.admin.command('ping')
-        app.config["MONGO_URI"] = clean_uri
-        mongo_instance = PyMongo(app)
-        logger.info("Method 4 SUCCESS: Direct connection with SSL disabled")
-        connection_methods.append("Direct connection with SSL disabled - SUCCESS")
-        return mongo_instance, connection_methods
-    except Exception as e4:
-        logger.error(f"Method 4 FAILED: {e4}")
-        connection_methods.append(f"Direct connection with SSL disabled - FAILED: {str(e4)}")
-    
-    # Method 5: Alternative cluster connection
-    try:
-        logger.info("Attempting Method 5: Alternative cluster connection")
-        alt_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/?retryWrites=true&w=majority"
+        logger.info("Attempting Method 3: Alternative connection string")
+        alt_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt?retryWrites=true&w=majority"
         app.config["MONGO_URI"] = alt_uri
         mongo_instance = PyMongo(app)
         mongo_instance.db.command('ping')
-        logger.info("Method 5 SUCCESS: Alternative cluster connection")
-        connection_methods.append("Alternative cluster connection - SUCCESS")
+        logger.info("Method 3 SUCCESS: Alternative connection string")
+        connection_methods.append("Alternative connection string - SUCCESS")
+        return mongo_instance, connection_methods
+    except Exception as e3:
+        logger.error(f"Method 3 FAILED: {e3}")
+        connection_methods.append(f"Alternative connection string - FAILED: {str(e3)}")
+    
+    # Method 4: Try without database name in URI
+    try:
+        logger.info("Attempting Method 4: Without database name in URI")
+        base_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/?retryWrites=true&w=majority"
+        app.config["MONGO_URI"] = base_uri
+        mongo_instance = PyMongo(app)
+        mongo_instance.db.command('ping')
+        logger.info("Method 4 SUCCESS: Without database name in URI")
+        connection_methods.append("Without database name in URI - SUCCESS")
+        return mongo_instance, connection_methods
+    except Exception as e4:
+        logger.error(f"Method 4 FAILED: {e4}")
+        connection_methods.append(f"Without database name in URI - FAILED: {str(e4)}")
+    
+    # Method 5: Try with different MongoDB Atlas cluster settings
+    try:
+        logger.info("Attempting Method 5: Different cluster settings")
+        # Try with a simpler connection string
+        simple_uri = "mongodb+srv://ukgaming:Sudhanva%40104@cluster0.4xhbbck.mongodb.net/projectMngmt"
+        app.config["MONGO_URI"] = simple_uri
+        mongo_instance = PyMongo(app)
+        mongo_instance.db.command('ping')
+        logger.info("Method 5 SUCCESS: Different cluster settings")
+        connection_methods.append("Different cluster settings - SUCCESS")
         return mongo_instance, connection_methods
     except Exception as e5:
         logger.error(f"Method 5 FAILED: {e5}")
-        connection_methods.append(f"Alternative cluster connection - FAILED: {str(e5)}")
+        connection_methods.append(f"Different cluster settings - FAILED: {str(e5)}")
     
     logger.error("All MongoDB connection methods failed")
     return None, connection_methods
