@@ -174,12 +174,13 @@ atexit.register(lambda: scheduler.shutdown())
 login_manager = LoginManager()
 
 def send_email_notification(recipient_email, subject, body):
-    try:
-        msg = Message(subject, recipients=[recipient_email], body=body)
-        mail.send(msg)
-        logger.info(f"Email notification sent to {recipient_email} with subject: {subject}")
-    except Exception as e:
-        logger.error(f"Error sending email to {recipient_email}: {e}")
+    with app.app_context():
+        try:
+            msg = Message(subject, recipients=[recipient_email], body=body)
+            mail.send(msg)
+            logger.info(f"Email notification sent to {recipient_email} with subject: {subject}")
+        except Exception as e:
+            logger.error(f"Error sending email to {recipient_email}: {e}")
 
 def create_notification(user_id, message, notification_type, link=None):
     try:
@@ -353,6 +354,8 @@ def login():
             if user_data and check_password_hash(user_data["password_hash"], password):
                 user = User(user_data)
                 login_user(user)
+                # Reset updates_seen flag on successful login
+                mongo.db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'updates_seen': False}})
                 flash("Login successful!")
                 return redirect(url_for("dashboard"))
             else:
@@ -1034,6 +1037,37 @@ def mark_notification_read(notification_id):
     except Exception as e:
         logger.error(f"Error marking notification {notification_id} as read: {e}")
         return jsonify({"error": "Error marking notification as read"}), 500
+
+@app.route("/api/updates_seen", methods=["POST"])
+@login_required
+def mark_updates_seen():
+    try:
+        mongo.db.users.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$set": {"updates_seen": True}}
+        )
+        return jsonify({"success": True, "message": "Updates marked as seen"})
+    except Exception as e:
+        logger.error(f"Error marking updates as seen for user {current_user.id}: {e}")
+        return jsonify({"error": "Error marking updates as seen"}), 500
+
+@app.route("/api/get_updates")
+@login_required
+def get_updates():
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+        if user and not user.get('updates_seen', False):
+            updates_content = {
+                "title": "Recent Updates!",
+                "message": "We've added new features:\n- Conditional navigation links based on authentication.\n- Improved notification system with email alerts.\n- Scheduled task due date reminders.",
+                "version": "1.0"
+            }
+            return jsonify(updates_content)
+        else:
+            return jsonify({})
+    except Exception as e:
+        logger.error(f"Error fetching updates: {e}")
+        return jsonify({"error": "Error fetching updates"}), 500
 
 @app.route("/profile/edit", methods=["GET", "POST"])
 @login_required
