@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -129,8 +130,85 @@ if mongo is None:
 else:
     logger.info("MongoDB connection established successfully")
 
+# Initialize notifications collection
+notifications_collection = mongo.db.notifications
+
+# Initialize scheduler
+scheduler = BackgroundScheduler()
+
+def check_due_dates():
+    with app.app_context():
+        logger.info("Running due date check...")
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+
+        # Find tasks due tomorrow
+        tasks_due_tomorrow = mongo.db.tasks.find({
+            "due_date": {"$gte": today, "$lt": tomorrow},
+            "status": {"$ne": "Done"}
+        })
+
+        for task in tasks_due_tomorrow:
+            if task.get("assigned_to"):
+                assigned_user_id = str(task["assigned_to"])
+                project = mongo.db.projects.find_one({"_id": ObjectId(task["project_id"])})
+                if project:
+                    task_link = url_for('view_project', project_id=str(project['_id']), _external=True) + f'#task-{task["_id"]}'
+                    message = f"Reminder: The task '{task['title']}' is due tomorrow in project '{project['title']}'."
+                    create_notification(assigned_user_id, message, 'due_date_approaching', task_link)
+                else:
+                    logger.warning(f"Project not found for task {task['_id']}. Cannot send due date notification.")
+                logger.info(f"Due date notification sent for task {task['title']} to user {assigned_user_id}")
+
+# Add the job to the scheduler
+scheduler.add_job(check_due_dates, 'interval', hours=24)
+
+# Start the scheduler
+scheduler.start()
+
+# Shut down the scheduler when exiting the app
+import atexit
+atexit.register(lambda: scheduler.shutdown())
+
 # Initialize Login Manager
 login_manager = LoginManager()
+
+def send_email_notification(recipient_email, subject, body):
+    try:
+        msg = Message(subject, recipients=[recipient_email], body=body)
+        mail.send(msg)
+        logger.info(f"Email notification sent to {recipient_email} with subject: {subject}")
+    except Exception as e:
+        logger.error(f"Error sending email to {recipient_email}: {e}")
+
+def create_notification(user_id, message, notification_type, link=None):
+    try:
+        notification = {
+            "user_id": ObjectId(user_id),
+            "message": message,
+            "type": notification_type, # e.g., 'task_assigned', 'due_date_approaching', 'user_mentioned'
+            "link": link,
+            "read": False,
+            "timestamp": datetime.utcnow()
+        }
+        notifications_collection.insert_one(notification)
+        logger.info(f"Notification created for user {user_id}: {message}")
+
+        # Send email notification if applicable
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if user and user.get('email'):
+            if notification_type == 'task_assigned':
+                subject = f"Task Assigned: {message.split(': ')[1].split(' in project')[0]}"
+                send_email_notification(user['email'], subject, message + f"\nView task: {link}")
+            elif notification_type == 'user_mentioned':
+                subject = f"You were mentioned in a comment: {message.split(': ')[1]}"
+                send_email_notification(user['email'], subject, message + f"\nView comment: {link}")
+            elif notification_type == 'due_date_approaching':
+                subject = f"Task Due Soon: {message.split(': ')[1].split(' is due tomorrow')[0]}"
+                send_email_notification(user['email'], subject, message + f"\nView task: {link}")
+
+    except Exception as e:
+        logger.error(f"Error creating notification for user {user_id}: {e}")
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
@@ -747,6 +825,15 @@ def create_task(project_id):
             }
             
             task_id = mongo.db.tasks.insert_one(new_task).inserted_id
+
+            # Create notification for assigned user if assigned_to is present
+            if assigned_to:
+                assigned_user = mongo.db.users.find_one({"_id": ObjectId(assigned_to)})
+                if assigned_user:
+                    project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
+                    task_link = url_for('view_project', project_id=project_id, _external=True) + f'#task-{task_id}'
+                    message = f"You have been assigned a new task: {title} in project {project['title']}."
+                    create_notification(assigned_to, message, 'task_assigned', task_link)
             
             # Update project's tasks list
             mongo.db.projects.update_one(
@@ -834,6 +921,16 @@ def add_comment(task_id):
             {"_id": ObjectId(task_id)},
             {"$push": {"comments": comment}}
         )
+
+        # Check for user mentions in the comment
+        mentioned_users = re.findall(r'@(\w+)', comment_text)
+        if mentioned_users:
+            for username in mentioned_users:
+                user = mongo.db.users.find_one({"name": username})
+                if user:
+                    comment_link = url_for('view_project', project_id=task["project_id"], _external=True) + f'#task-{task_id}'
+                    message = f"You were mentioned in a comment on task '{task['title']}'."
+                    create_notification(str(user['_id']), message, 'user_mentioned', comment_link)
         
         flash("Comment added successfully!")
         return redirect(url_for("view_project", project_id=task["project_id"]))
@@ -865,17 +962,34 @@ def edit_task(task_id):
             due_date = request.form.get("due_date")
             status = request.form.get("status")
             
+            # Get the existing task to compare assigned_to
+            existing_task = mongo.db.tasks.find_one({"_id": ObjectId(task_id)})
+
+            update_fields = {
+                "title": title,
+                "description": description,
+                "due_date": datetime.strptime(due_date, "%Y-%m-%d") if due_date else None,
+                "status": status
+            }
+
+            # Handle assigned_to change and notification
+            if assigned_to:
+                update_fields["assigned_to"] = ObjectId(assigned_to)
+                if existing_task.get("assigned_to") != ObjectId(assigned_to):
+                    assigned_user = mongo.db.users.find_one({"_id": ObjectId(assigned_to)})
+                    if assigned_user:
+                        project = mongo.db.projects.find_one({"_id": ObjectId(task["project_id"])})
+                        task_link = url_for('view_project', project_id=task["project_id"], _external=True) + f'#task-{task_id}'
+                        message = f"You have been assigned task: {title} in project {project['title']}."
+                        create_notification(assigned_to, message, 'task_assigned', task_link)
+            else:
+                update_fields["assigned_to"] = None
+
             mongo.db.tasks.update_one(
                 {"_id": ObjectId(task_id)},
-                {"$set": {
-                    "title": title,
-                    "description": description,
-                    "assigned_to": assigned_to,
-                    "due_date": due_date,
-                    "status": status
-                }}
+                {"$set": update_fields}
             )
-            
+
             flash("Task updated successfully!")
             return redirect(url_for("view_project", project_id=task["project_id"]))
         
@@ -893,6 +1007,33 @@ def edit_task(task_id):
     except Exception as e:
         logger.error(f"Error in edit_task route: {e}")
         return "Error editing task", 500
+
+@app.route("/api/notifications")
+@login_required
+def get_notifications():
+    try:
+        notifications = list(notifications_collection.find({"user_id": ObjectId(current_user.id), "read": False}).sort("timestamp", -1))
+        for notification in notifications:
+            notification["_id"] = str(notification["_id"])
+            notification["user_id"] = str(notification["user_id"])
+            notification["timestamp"] = notification["timestamp"].isoformat()
+        return jsonify(notifications)
+    except Exception as e:
+        logger.error(f"Error fetching notifications for user {current_user.id}: {e}")
+        return jsonify({"error": "Error fetching notifications"}), 500
+
+@app.route("/api/notifications/mark_read/<notification_id>", methods=["POST"])
+@login_required
+def mark_notification_read(notification_id):
+    try:
+        notifications_collection.update_one(
+            {"_id": ObjectId(notification_id), "user_id": ObjectId(current_user.id)},
+            {"$set": {"read": True}}
+        )
+        return jsonify({"success": True, "message": "Notification marked as read"})
+    except Exception as e:
+        logger.error(f"Error marking notification {notification_id} as read: {e}")
+        return jsonify({"error": "Error marking notification as read"}), 500
 
 @app.route("/profile/edit", methods=["GET", "POST"])
 @login_required

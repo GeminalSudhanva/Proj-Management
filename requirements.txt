@@ -14,3 +14,4 @@ flask-socketio==5.3.4
 flask-mail==0.9.1
 PyQt5==5.15.9
 PyQtWebEngine==5.15.6
+APScheduler==3.10.4
