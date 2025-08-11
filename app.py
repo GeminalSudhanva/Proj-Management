@@ -894,6 +894,27 @@ def edit_task(task_id):
         logger.error(f"Error in edit_task route: {e}")
         return "Error editing task", 500
 
+@app.route("/profile/edit", methods=["GET", "POST"])
+@login_required
+def edit_profile():
+    try:
+        user_data = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+        if request.method == "POST":
+            new_name = request.form.get("name")
+            if new_name:
+                mongo.db.users.update_one(
+                    {"_id": ObjectId(current_user.id)},
+                    {"$set": {"name": new_name}}
+                )
+                flash("Profile updated successfully!")
+                return redirect(url_for("dashboard"))
+            else:
+                flash("Name cannot be empty.")
+        return render_template("edit_profile.html", user=user_data)
+    except Exception as e:
+        logger.error(f"Error in edit_profile route: {e}")
+        return "Error loading profile edit page", 500
+
 @app.route("/project/<project_id>/progress")
 @login_required
 def project_progress(project_id):
