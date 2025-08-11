@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, session
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -302,6 +302,7 @@ def forgot_password():
                 }
             )
             
+            # In a real application, you would send an email with the reset link here.
             flash("Password reset instructions have been sent to your email.")
             flash("For demo purposes, your reset link is:")
             flash(f"http://127.0.0.1:5000/reset-password/{reset_token}")
@@ -411,8 +412,29 @@ def dashboard():
             if str(project["_id"]) not in project_ids:
                 project_ids.add(str(project["_id"]))
                 all_projects.append(project)
+
+        # Calculate total team members (unique across all projects)
+        all_team_member_ids = set()
+        for project in all_projects:
+            for member_id in project.get("team_members", []):
+                all_team_member_ids.add(member_id)
+        team_members_count = len(all_team_member_ids)
+
+        # Calculate total tasks and completed tasks
+        total_tasks = 0
+        completed_tasks = 0
+        for project in all_projects:
+            project_tasks = list(mongo.db.tasks.find({"project_id": str(project["_id"])}))
+            total_tasks += len(project_tasks)
+            completed_tasks += len([task for task in project_tasks if task["status"] == "Done"])
         
-        return render_template("dashboard.html", projects=all_projects)
+        return render_template(
+            "dashboard.html",
+            projects=all_projects,
+            team_members_count=team_members_count,
+            total_tasks=total_tasks,
+            completed_tasks=completed_tasks
+        )
     except Exception as e:
         logger.error(f"Error in dashboard route: {e}")
         return "Error loading dashboard", 500
