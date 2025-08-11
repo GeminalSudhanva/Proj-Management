@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_pymongo import PyMongo
+from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
@@ -17,6 +18,16 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-secret-key")
+
+# Flask-Mail Configuration
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER")
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER")
+
+mail = Mail(app)
 
 # MongoDB Configuration
 mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/projectMngmt")
@@ -302,10 +313,20 @@ def forgot_password():
                 }
             )
             
-            # In a real application, you would send an email with the reset link here.
-            flash("Password reset instructions have been sent to your email.")
-            flash("For demo purposes, your reset link is:")
-            flash(f"http://127.0.0.1:5000/reset-password/{reset_token}")
+            # Send email with reset link
+            reset_link = url_for("reset_password", token=reset_token, _external=True)
+            msg = Message(
+                "Password Reset Request",
+                sender=app.config["MAIL_DEFAULT_SENDER"],
+                recipients=[email]
+            )
+            msg.body = f"To reset your password, visit the following link: {reset_link}"
+            try:
+                mail.send(msg)
+                flash("Password reset instructions have been sent to your email.")
+            except Exception as e:
+                logger.error(f"Failed to send password reset email: {e}")
+                flash("Failed to send password reset email. Please try again later.")
             return redirect(url_for("login"))
         else:
             flash("Email not found. Please check your email address.")
@@ -496,8 +517,8 @@ def view_project(project_id):
             if member:
                 team_members.append({
                     "id": str(member["_id"]),
-                    "name": member["name"],
-                    "email": member["email"]
+                    "name": member.get("name", "Unknown User"),
+                    "email": member.get("email", "N/A")
                 })
         
         # Organize tasks by status
@@ -743,7 +764,7 @@ def create_task(project_id):
             if member:
                 team_members.append({
                     "id": str(member["_id"]),
-                    "name": member["name"]
+                    "name": member.get("name", "Unknown User")
                 })
         
         return render_template("create_task.html", project=project, team_members=team_members)
@@ -865,7 +886,7 @@ def edit_task(task_id):
             if member:
                 team_members.append({
                     "id": str(member["_id"]),
-                    "name": member["name"]
+                    "name": member.get("name", "Unknown User")
                 })
         
         return render_template("edit_task.html", task=task, project=project, team_members=team_members)
