@@ -1,17 +1,17 @@
-/* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 /* Soft Modern Pastel Theme CSS */
 
 /* Base styles */
 body {
-    background: #F1FAEE;
+    background-color: #F1FAEE;
     font-family: 'Poppins', sans-serif;
     font-weight: 400;
     color: #1D3557;
     line-height: 1.6;
     margin: 0;
     padding: 0;
+    height: 100%;
 }
 
 /* Typography */
@@ -173,15 +173,36 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 0.5rem;
 }
 
-/* Hero Section Background Image */
+/* Hero Section */
 .hero-background {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/static/images/Collaborative_Analysis.png?v=2');
-    background-size: cover;
-    background-position: top center;
-    background-repeat: no-repeat;
-    min-height: 100vh;
-    background-attachment: fixed;
+    background-color: #F1FAEE; /* Light background for the box */
+    min-height: auto; /* Adjust height to content */
+    padding-top: 50px;
+    padding-bottom: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #1D3557; /* Darker text color for contrast */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(29, 53, 87, 0.08);
+    margin: 0 auto;  /* Center the box horizontally */
+    max-width: 700px; /* Limit width of the box */
+}
 
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 5rem 2rem; /* Add more vertical padding */
+    max-width: 100%;
+    color: #1D3557; /* Ensure text color is dark inside the box */
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 2rem;
+    max-width: 800px;
 }
 
 /* Alert enhancements */
