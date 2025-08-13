@@ -168,6 +168,18 @@ def check_due_dates():
 # Add the job to the scheduler
 scheduler.add_job(check_due_dates, 'interval', hours=24)
 
+def clean_old_chat_messages():
+    with app.app_context():
+        logger.info("Running old chat messages cleanup...")
+        # Calculate the timestamp for 24 hours ago
+        time_threshold = datetime.utcnow() - timedelta(hours=24)
+        # Delete messages older than the threshold
+        result = chat_messages_collection.delete_many({"timestamp": {"$lt": time_threshold}})
+        logger.info(f"Deleted {result.deleted_count} old chat messages.")
+
+# Add the chat cleanup job to the scheduler
+scheduler.add_job(clean_old_chat_messages, 'interval', hours=24)
+
 # Start the scheduler
 scheduler.start()
 
@@ -547,6 +559,10 @@ def dashboard():
         user_data = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
         show_new_feature_alert = not user_data.get('updates_seen', False) if user_data else False
         show_chat_feature_alert = not user_data.get('chat_feature_seen', False) if user_data else False
+
+        # Ensure only one new feature alert is shown at a time, prioritize chat feature
+        if show_chat_feature_alert:
+            show_new_feature_alert = False
 
         # Render the template first
         rendered_template = render_template(
@@ -1071,6 +1087,12 @@ def mark_notification_read(notification_id):
 @app.route('/chat')
 @login_required
 def chat():
+    # Mark chat notifications as read for the current user
+    notifications_collection.update_many(
+        {"user_id": ObjectId(current_user.id), "type": "chat_message", "read": False},
+        {"$set": {"read": True}}
+    )
+
     # Fetch historical messages
     messages = mongo.db.chat_messages_collection.find().sort('timestamp', 1)
     # Convert ObjectId to string for JSON serialization
