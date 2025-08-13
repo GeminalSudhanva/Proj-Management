@@ -250,6 +250,9 @@ def index():
         logger.error(f"Error in index route: {e}")
         return "Error loading page", 500
 
+
+
+
 @app.route("/health")
 def health_check():
     """Health check endpoint to test if app is running"""
