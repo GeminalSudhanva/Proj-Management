@@ -2,21 +2,23 @@
 {% block title %}Welcome{% endblock %}
 {% block content %}
 <!-- Hero Section -->
-<div class="row justify-content-center align-items-center mb-5" style="min-height: 60vh;">
-  <div class="col-md-8 text-center">
-    <div class="card shadow-lg p-5">
-      <div class="mb-4">
-        <i class="fas fa-project-diagram" style="font-size: 4rem; color: #A8DADC; margin-bottom: 1rem;"></i>
-      </div>
-      <h1 class="display-4 mb-3 fw-bold" style="color: #1D3557;">Welcome to ProjectMngmt</h1>
-      <p class="lead mb-4 fs-5" style="color: #457B9D;">🚀 The ultimate platform for seamless project collaboration and task management</p>
-      <div class="d-flex justify-content-center gap-3">
-        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4">
-          <i class="fas fa-rocket me-2"></i>Get Started
-        </a>
-        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">
-          <i class="fas fa-sign-in-alt me-2"></i>Login
-        </a>
+<div class="hero-background animate__animated animate__fadeIn">
+  <div class="row justify-content-center align-items-center mb-5">
+    <div class="col-md-8 text-center">
+      <div>
+        <div class="mb-4">
+          <i class="fas fa-project-diagram" style="font-size: 4rem; color: #A8DADC; margin-bottom: 1rem;"></i>
+        </div>
+        <h1 class="display-4 mb-3 fw-bold" style="color: #FFFFFF; text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);">Welcome to ProjectMngmt</h1>
+        <p class="lead mb-4 fs-5" style="color: #FFFFFF; text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);">🚀 The ultimate platform for seamless project collaboration and task management</p>
+        <div class="d-flex justify-content-center gap-3">
+          <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4">
+            <i class="fas fa-rocket me-2"></i>Get Started
+          </a>
+          <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">
+            <i class="fas fa-sign-in-alt me-2"></i>Login
+          </a>
+        </div>
       </div>
     </div>
   </div>

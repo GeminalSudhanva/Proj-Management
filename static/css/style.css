@@ -39,7 +39,7 @@ h1, h2, h3, h4, h5, h6 {
 .navbar-brand {
     font-weight: 700;
     font-size: 1.5rem;
-    color: #FFFFFF !important;
+    color: #A8DADC !important;
 }
 
 .navbar-nav .nav-link {
@@ -51,7 +51,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .navbar-nav .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #A8DADC;
     transform: translateY(-1px);
 }
 
@@ -61,7 +61,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(29, 53, 87, 0.08);
     transition: all 0.3s ease;
-    background: #FFFFFF;
+    background: #E0F2F7;
     margin-bottom: 1rem;
 }
 
@@ -98,33 +98,33 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary {
-    background: #A8DADC;
-    color: #1D3557;
+    background: #457B9D;
+    color: #FFFFFF;
 }
 
 .btn-primary:hover {
-    background: #9BCFD1;
-    color: #1D3557;
+    background: #1D3557;
+    color: #FFFFFF;
 }
 
 .btn-success {
-    background: #A8DADC;
-    color: #1D3557;
+    background: #457B9D;
+    color: #FFFFFF;
 }
 
 .btn-success:hover {
-    background: #9BCFD1;
-    color: #1D3557;
+    background: #1D3557;
+    color: #FFFFFF;
 }
 
 .btn-info {
-    background: #A8DADC;
-    color: #1D3557;
+    background: #457B9D;
+    color: #FFFFFF;
 }
 
 .btn-info:hover {
-    background: #9BCFD1;
-    color: #1D3557;
+    background: #1D3557;
+    color: #FFFFFF;
 }
 
 .btn-outline-primary {
@@ -140,14 +140,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-outline-secondary {
-    border: 2px solid #457B9D;
-    color: #457B9D;
+    border: 2px solid #A8DADC;
+    color: #A8DADC;
     background: transparent;
 }
 
 .btn-outline-secondary:hover {
-    background: #457B9D;
-    color: #FFFFFF;
+    background: #A8DADC;
+    color: #1D3557;
 }
 
 /* Form enhancements */
@@ -171,6 +171,17 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 500;
     color: #1D3557;
     margin-bottom: 0.5rem;
+}
+
+/* Hero Section Background Image */
+.hero-background {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/static/images/Collaborative_Analysis.png?v=2');
+    background-size: cover;
+    background-position: top center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    background-attachment: fixed;
+
 }
 
 /* Alert enhancements */
@@ -276,7 +287,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Footer enhancement */
 footer {
-    background: #457B9D !important;
+    background: #1D3557 !important; /* Updated to a darker shade */
     color: #FFFFFF !important;
     box-shadow: 0 -2px 8px rgba(69, 123, 157, 0.15);
     margin-top: 3rem;
