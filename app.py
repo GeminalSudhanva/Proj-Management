@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_pymongo import PyMongo
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-secret-key")
 
 # Flask-Mail Configuration
@@ -133,6 +135,9 @@ else:
 # Initialize notifications collection
 notifications_collection = mongo.db.notifications
 
+# Initialize chat messages collection
+chat_messages_collection = mongo.db.chat_messages
+
 # Initialize scheduler
 scheduler = BackgroundScheduler()
 
@@ -194,6 +199,9 @@ def create_notification(user_id, message, notification_type, link=None):
         }
         notifications_collection.insert_one(notification)
         logger.info(f"Notification created for user {user_id}: {message}")
+
+        # Emit a Socket.IO event for real-time notification
+        socketio.emit('new_notification', {'user_id': str(user_id), 'message': message, 'link': link}, room=str(user_id))
 
         # Send email notification if applicable
         user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
@@ -1041,6 +1049,11 @@ def mark_notification_read(notification_id):
         logger.error(f"Error marking notification {notification_id} as read: {e}")
         return jsonify({"error": "Error marking notification as read"}), 500
 
+@app.route('/chat')
+@login_required
+def chat():
+    return render_template('chat.html')
+
 @app.route("/api/updates_seen", methods=["POST"])
 @login_required
 def mark_updates_seen():
@@ -1198,5 +1211,56 @@ def manifest():
 def service_worker():
     return app.send_static_file('sw.js')
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@socketio.on('connect')
+def handle_connect():
+    if current_user.is_authenticated:
+        join_room(str(current_user.get_id()))
+        print(f'Client connected: {current_user.name} (ID: {current_user.get_id()})')
+    else:
+        print('Anonymous client connected')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    if current_user.is_authenticated:
+        leave_room(str(current_user.get_id()))
+        print(f'Client disconnected: {current_user.name} (ID: {current_user.get_id()})')
+    else:
+        print('Anonymous client disconnected')
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    if current_user.is_authenticated:
+        message_content = data['message']
+        username = current_user.name
+        user_id = str(current_user.get_id())
+        timestamp = datetime.utcnow()
+
+        # Save message to MongoDB
+        chat_messages_collection.insert_one({
+            'sender_id': user_id,
+            'sender_username': username,
+            'message': message_content,
+            'timestamp': timestamp,
+            'room': 'general' # For now, all messages go to a 'general' room
+        })
+        emit('receive_message', {'username': username, 'message': message_content, 'timestamp': str(timestamp)}, broadcast=True)
+    else:
+        print('Anonymous user tried to send a message.')
+
+@socketio.on('request_online_users')
+def handle_request_online_users():
+    # In a real application, you'd track online users more robustly
+    # For now, we'll just send back the current user if authenticated
+    online_users = []
+    if current_user.is_authenticated:
+        online_users.append({'id': str(current_user.get_id()), 'username': current_user.name})
+    emit('online_users', online_users)
+
+@socketio.on('request_chat_rooms')
+def handle_request_chat_rooms():
+    # For now, a single general chat room
+    chat_rooms = [{'id': 'general', 'name': 'General Chat'}]
+    emit('chat_rooms', chat_rooms)
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True)

@@ -59,6 +59,11 @@
                 <i class="fas fa-plus me-1"></i>Create Project
               </a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('chat') }}">
+                <i class="fas fa-comments me-1"></i>Chat
+              </a>
+            </li>
             {% if current_user.is_authenticated %}
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('view_invitations') }}">
@@ -164,6 +169,49 @@
         });
     </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io();
+
+            socket.on('connect', function() {
+                console.log('Socket.IO connected!');
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Socket.IO disconnected!');
+            });
+
+            socket.on('new_notification', function(data) {
+                console.log('New notification received:', data);
+                // You can add logic here to display the notification to the user
+                // For example, update the notification badge or show a toast
+                if (data.user_id === '{{ current_user.get_id() }}') {
+                    // This is a basic example, you'd want to re-fetch notifications or update the UI more robustly
+                    const notificationBadge = document.getElementById('notification-badge');
+                    if (notificationBadge) {
+                        notificationBadge.textContent = parseInt(notificationBadge.textContent) + 1;
+                    }
+                    // Optionally, add the new notification to the dropdown immediately
+                    const notificationDropdown = document.getElementById('notification-dropdown');
+                    if (notificationDropdown) {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a class="dropdown-item" href="${data.link || '#'}">${data.message}</a>`;
+                        // Remove "No new notifications" if it exists
+                        if (notificationDropdown.children.length === 1 && notificationDropdown.children[0].textContent === 'No new notifications') {
+                            notificationDropdown.innerHTML = '';
+                        }
+                        notificationDropdown.prepend(li); // Add to top
+                    }
+                }
+            });
+
+            // Example of sending a message (for testing purposes, can be removed later)
+            // setTimeout(function() {
+            //     socket.emit('send_message', {message: 'Hello from client!', username: 'TestUser'});
+            // }, 3000);
+        });
+    </script>
     
     <!-- Updates Modal -->
     <div class="modal fade" id="updatesModal" tabindex="-1" aria-labelledby="updatesModalLabel" aria-hidden="true">
