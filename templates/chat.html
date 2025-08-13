@@ -26,6 +26,9 @@
                 <div class="card-header" id="chat-header">Select a chat to begin</div>
                 <div class="card-body chat-box" id="chat-box">
                     <!-- Chat messages will appear here -->
+                    {% for message in historical_messages %}
+                    <div>{{ message.username }}: {{ message.message }}</div>
+                    {% endfor %}
                 </div>
                 <div class="card-footer">
                     <div class="input-group">
@@ -63,7 +66,7 @@
             users.forEach(function(user) {
                 var li = document.createElement('li');
                 li.className = 'list-group-item';
-                li.textContent = user.name + (user.id === '{{ current_user.get_id() }}' ? ' (You)' : '');
+                li.textContent = user.username + (user.id === '{{ current_user.get_id() }}' ? ' (You)' : '');
                 onlineUsersList.appendChild(li);
             });
         });

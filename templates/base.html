@@ -213,56 +213,7 @@
         });
     </script>
     
-    <!-- Updates Modal -->
-    <div class="modal fade" id="updatesModal" tabindex="-1" aria-labelledby="updatesModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="updatesModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p id="updatesModalMessage"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // ... existing notification script ...
-
-            // Updates Modal Logic
-            async function checkAndDisplayUpdates() {
-                try {
-                    const response = await fetch('/api/get_updates');
-                    const updates = await response.json();
-
-                    if (updates && updates.title && updates.message) {
-                        const updatesModal = new bootstrap.Modal(document.getElementById('updatesModal'));
-                        document.getElementById('updatesModalLabel').textContent = updates.title;
-                        document.getElementById('updatesModalMessage').innerHTML = updates.message.replace(/\n/g, '<br>');
-                        updatesModal.show();
-
-                        // Mark updates as seen after displaying
-                        await fetch('/api/updates_seen', {
-                            method: 'POST'
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error checking or displaying updates:', error);
-                }
-            }
-
-            // Only check for updates if the user is authenticated (to avoid showing to unlogged users)
-            {% if current_user.is_authenticated %}
-                checkAndDisplayUpdates();
-            {% endif %}
-        });
-    </script>
 
     <!-- PWA Service Worker Registration -->
     <script>

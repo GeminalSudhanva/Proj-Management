@@ -80,17 +80,17 @@
   </div>
 </section>
 
-
-
 <!-- Call to Action Section -->
-<section class="cta-section py-5 text-white text-center">
+<section class="call-to-action-section bg-primary text-white text-center py-5">
   <div class="container">
-    <h2 class="mb-3 animate__animated animate__fadeInUp">Ready to Elevate Your Project Management?</h2>
-    <p class="lead mb-4 animate__animated animate__fadeInUp animate__delay-1s">Join thousands of successful teams who trust ProjectMngmt to streamline their workflow and achieve their goals.</p>
-    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center animate__animated animate__fadeInUp animate__delay-2s">
-      <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-4 me-sm-3">Get Started Today</a>
-      <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg px-4">Sign In</a>
-    </div>
+    <h2 class="mb-4">Ready to Elevate Your Project Management?</h2>
+    <p class="lead mb-4">Join thousands of successful teams who trust ProjectMngmt to streamline their workflow and achieve their goals.</p>
+    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-3">Get Started Today</a>
+    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">Sign In</a>
   </div>
 </section>
+
+
+
+
 {% endblock %}

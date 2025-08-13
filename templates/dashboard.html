@@ -1,6 +1,18 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
+{% if show_new_feature_alert %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <strong>New Feature Alert!</strong> We've added a real-time chat room for seamless team collaboration. Check it out now!
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if show_chat_feature_alert %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <strong>New Chat Feature!</strong> A new chat room feature has been added for real-time communication with your team. Explore it now!
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
 <div class="container-fluid">
   <div class="row">
     <div class="col-12">

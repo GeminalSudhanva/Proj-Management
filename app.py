@@ -365,9 +365,11 @@ def login():
             if user_data and check_password_hash(user_data["password_hash"], password):
                 user = User(user_data)
                 login_user(user)
-                # Reset updates_seen flag on successful login
+                # Set updates_seen flag to False on successful login to show the alert
                 mongo.db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'updates_seen': False}})
                 flash("Login successful!")
+                # Set updates_seen and chat_feature_seen flags to False on successful login to show the alerts
+                mongo.db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'updates_seen': False, 'chat_feature_seen': False}})
                 return redirect(url_for("dashboard"))
             else:
                 flash("Invalid email or password.")
@@ -540,14 +542,31 @@ def dashboard():
             project_tasks = list(mongo.db.tasks.find({"project_id": str(project["_id"])}))
             total_tasks += len(project_tasks)
             completed_tasks += len([task for task in project_tasks if task["status"] == "Done"])
-        
-        return render_template(
+
+        # Fetch user data to check for new feature alert status
+        user_data = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+        show_new_feature_alert = not user_data.get('updates_seen', False) if user_data else False
+        show_chat_feature_alert = not user_data.get('chat_feature_seen', False) if user_data else False
+
+        # Render the template first
+        rendered_template = render_template(
             "dashboard.html",
             projects=all_projects,
             team_members_count=team_members_count,
             total_tasks=total_tasks,
-            completed_tasks=completed_tasks
+            completed_tasks=completed_tasks,
+            show_new_feature_alert=show_new_feature_alert,
+            show_chat_feature_alert=show_chat_feature_alert
         )
+
+        # Mark alerts as seen after rendering the dashboard
+        if user_data:
+            if show_new_feature_alert:
+                mongo.db.users.update_one({'_id': ObjectId(current_user.id)}, {'$set': {'updates_seen': True}})
+            if show_chat_feature_alert:
+                mongo.db.users.update_one({'_id': ObjectId(current_user.id)}, {'$set': {'chat_feature_seen': True}})
+        
+        return rendered_template
     except Exception as e:
         logger.error(f"Error in dashboard route: {e}")
         return "Error loading dashboard", 500
@@ -1052,7 +1071,14 @@ def mark_notification_read(notification_id):
 @app.route('/chat')
 @login_required
 def chat():
-    return render_template('chat.html')
+    # Fetch historical messages
+    messages = mongo.db.chat_messages_collection.find().sort('timestamp', 1)
+    # Convert ObjectId to string for JSON serialization
+    messages_list = []
+    for msg in messages:
+        msg['_id'] = str(msg['_id'])
+        messages_list.append(msg)
+    return render_template('chat.html', historical_messages=messages_list)
 
 @app.route("/api/updates_seen", methods=["POST"])
 @login_required
@@ -1244,6 +1270,15 @@ def handle_send_message(data):
             'room': 'general' # For now, all messages go to a 'general' room
         })
         emit('receive_message', {'username': username, 'message': message_content, 'timestamp': str(timestamp)}, broadcast=True)
+
+        # Create notifications for other users in the chat room
+        # For a 'general' room, this means all other authenticated users
+        all_users = mongo.db.users.find({})
+        for user in all_users:
+            if str(user['_id']) != user_id: # Don't notify the sender
+                notification_message = f"{username} sent a message in chat: {message_content}"
+                chat_link = url_for('chat', _external=True)
+                create_notification(str(user['_id']), notification_message, 'chat_message', chat_link)
     else:
         print('Anonymous user tried to send a message.')
 
