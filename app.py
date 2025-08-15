@@ -1097,7 +1097,7 @@ def chat():
     )
 
     # Fetch historical messages
-    historical_messages = list(mongo.db.chat_messages_collection.find().sort('timestamp', 1))
+    historical_messages = list(chat_messages_collection.find().sort('timestamp', 1))
 
     # Convert ObjectId to string for each message and datetime to string
     for message in historical_messages:
