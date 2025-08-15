@@ -1097,13 +1097,16 @@ def chat():
     )
 
     # Fetch historical messages
-    messages = mongo.db.chat_messages_collection.find().sort('timestamp', 1)
-    # Convert ObjectId to string for JSON serialization
-    messages_list = []
-    for msg in messages:
-        msg['_id'] = str(msg['_id'])
-        messages_list.append(msg)
-    return render_template('chat.html', historical_messages=messages_list)
+    historical_messages = list(mongo.db.chat_messages_collection.find().sort('timestamp', 1))
+
+    # Convert ObjectId to string for each message and datetime to string
+    for message in historical_messages:
+        message['_id'] = str(message['_id'])
+        if 'timestamp' in message and isinstance(message['timestamp'], datetime):
+            message['timestamp'] = message['timestamp'].isoformat() # Convert datetime to string
+
+    return render_template('chat.html', historical_messages=historical_messages)
+
 
 @app.route("/api/updates_seen", methods=["POST"])
 @login_required
