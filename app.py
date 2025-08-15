@@ -190,6 +190,9 @@ atexit.register(lambda: scheduler.shutdown())
 # Initialize Login Manager
 login_manager = LoginManager()
 
+# Set to store currently connected user IDs
+connected_users = set()
+
 def send_email_notification(recipient_email, subject, body):
     with app.app_context():
         try:
@@ -1262,16 +1265,25 @@ def service_worker():
 @socketio.on('connect')
 def handle_connect():
     if current_user.is_authenticated:
-        join_room(str(current_user.get_id()))
-        print(f'Client connected: {current_user.name} (ID: {current_user.get_id()})')
+        user_id = str(current_user.get_id())
+        join_room(user_id)
+        connected_users.add(user_id) # Add user to the set of connected users
+        print(f'Client connected: {current_user.name} (ID: {user_id})')
+        # Emit updated online users list to all clients
+        emit('online_users', get_online_users_list(), broadcast=True)
     else:
         print('Anonymous client connected')
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if current_user.is_authenticated:
-        leave_room(str(current_user.get_id()))
-        print(f'Client disconnected: {current_user.name} (ID: {current_user.get_id()})')
+        user_id = str(current_user.get_id())
+        leave_room(user_id)
+        if user_id in connected_users:
+            connected_users.remove(user_id) # Remove user from the set
+        print(f'Client disconnected: {current_user.name} (ID: {user_id})')
+        # Emit updated online users list to all clients
+        emit('online_users', get_online_users_list(), broadcast=True)
     else:
         print('Anonymous client disconnected')
 
@@ -1293,25 +1305,32 @@ def handle_send_message(data):
         })
         emit('receive_message', {'username': username, 'message': message_content, 'timestamp': str(timestamp)}, broadcast=True)
 
-        # Create notifications for other users in the chat room
-        # For a 'general' room, this means all other authenticated users
+        # Create notifications for other users who are not currently in the chat room
         all_users = mongo.db.users.find({})
         for user in all_users:
-            if str(user['_id']) != user_id: # Don't notify the sender
-                notification_message = f"{username} sent a message in chat: {message_content}"
+            # Only notify users who are not the sender and are not currently connected to the chat
+            if str(user['_id']) != user_id and str(user['_id']) not in connected_users:
+                notification_message = "New messages"
                 chat_link = url_for('chat', _external=True)
                 create_notification(str(user['_id']), notification_message, 'chat_message', chat_link)
+            else:
+                # If the user is connected, they will see the message in real-time, no notification needed
+                pass
     else:
         print('Anonymous user tried to send a message.')
 
 @socketio.on('request_online_users')
-def handle_request_online_users():
-    # In a real application, you'd track online users more robustly
-    # For now, we'll just send back the current user if authenticated
+def get_online_users_list():
     online_users = []
-    if current_user.is_authenticated:
-        online_users.append({'id': str(current_user.get_id()), 'username': current_user.name})
-    emit('online_users', online_users)
+    for user_id in connected_users:
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if user:
+            online_users.append({'id': str(user['_id']), 'username': user['name']})
+    return online_users
+
+@socketio.on('request_online_users')
+def handle_request_online_users():
+    emit('online_users', get_online_users_list())
 
 @socketio.on('request_chat_rooms')
 def handle_request_chat_rooms():
