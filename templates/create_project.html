@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Create Project{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title mb-4">Create Project</h2>
+        <form method="POST">
+          <div class="mb-3">
+            <label for="title" class="form-label">Project Name</label>
+            <input type="text" class="form-control" id="title" name="title" placeholder="Enter project name" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Enter project description" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="deadline" class="form-label">Deadline</label>
+            <input type="date" class="form-control" id="deadline" name="deadline" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Create</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

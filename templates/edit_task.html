@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Edit Task{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title mb-4">Edit Task</h2>
+        <form method="POST">
+          <div class="mb-3">
+            <label for="title" class="form-label">Task Title</label>
+            <input type="text" class="form-control" id="title" name="title" value="{{ task.title }}" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" required>{{ task.description }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label for="assigned_to" class="form-label">Assign To</label>
+            <select class="form-select" id="assigned_to" name="assigned_to" required>
+              <option value="" disabled>Select team member</option>
+              {% for member in team_members %}
+                <option value="{{ member.id }}" {% if task.assigned_to == member.id %}selected{% endif %}>{{ member.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status" required>
+              <option value="To-do" {% if task.status == 'To-do' %}selected{% endif %}>To-do</option>
+              <option value="In Progress" {% if task.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+              <option value="Done" {% if task.status == 'Done' %}selected{% endif %}>Done</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="due_date" class="form-label">Due Date</label>
+            <input type="date" class="form-control" id="due_date" name="due_date" value="{{ task.due_date }}" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Update Task</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

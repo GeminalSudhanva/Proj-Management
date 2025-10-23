@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional Project Management Platform">
+    <meta name="keywords" content="project management, task management, team collaboration">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ProjectMngmt">
+    <title>{% block title %}Project Management{% endblock %}</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Bootstrap Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+          <i class="fas fa-project-diagram me-2"></i>ProjectMngmt
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bell"></i> <span class="badge bg-danger" id="notification-badge">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" id="notification-dropdown">
+                        <li><a class="dropdown-item" href="#">No new notifications</a></li>
+                    </ul>
+                </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('create_project') }}">
+                <i class="fas fa-plus me-1"></i>Create Project
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('chat') }}">
+                <i class="fas fa-comments me-1"></i>Chat
+              </a>
+            </li>
+            {% if current_user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('view_invitations') }}">
+                <i class="fas fa-envelope-open-text me-1"></i>Invitations
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('change_password') }}">
+                <i class="fas fa-key me-1"></i>Change Password
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">
+                <i class="fas fa-sign-out-alt me-1"></i>Logout
+              </a>
+            </li>
+            {% endif %}
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('login') }}">
+                <i class="fas fa-sign-in-alt me-1"></i>Login
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('register') }}">
+                <i class="fas fa-user-plus me-1"></i>Register
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle me-2"></i>{{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+    <!-- Footer -->
+    <footer class="bg-primary text-white text-center py-3 mt-4">
+      <div class="container">
+        <small><i class="fas fa-copyright me-1"></i>2024 ProjectMngmt. All rights reserved.</small>
+      </div>
+    </footer>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationBadge = document.getElementById('notification-badge');
+            const notificationDropdown = document.getElementById('notification-dropdown');
+
+            if (notificationBadge && notificationDropdown) {
+                async function fetchNotifications() {
+                    try {
+                        const response = await fetch('/api/notifications');
+                        const notifications = await response.json();
+
+                        notificationBadge.textContent = notifications.length;
+                        notificationDropdown.innerHTML = ''; // Clear existing notifications
+
+                        if (notifications.length === 0) {
+                            const li = document.createElement('li');
+                            li.innerHTML = '<a class="dropdown-item" href="#">No new notifications</a>';
+                            notificationDropdown.appendChild(li);
+                        } else {
+                            notifications.forEach(notification => {
+                                const li = document.createElement('li');
+                                li.innerHTML = `<a class="dropdown-item" href="${notification.link || '#'}" data-id="${notification._id}">${notification.message}</a>`;
+                                notificationDropdown.appendChild(li);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error fetching notifications:', error);
+                    }
+                }
+
+                notificationDropdown.addEventListener('click', async function(event) {
+                    const target = event.target;
+                    if (target.tagName === 'A' && target.dataset.id) {
+                        const notificationId = target.dataset.id;
+                        try {
+                            await fetch(`/api/notifications/mark_read/${notificationId}`, {
+                                method: 'POST'
+                            });
+                            fetchNotifications(); // Refresh notifications after marking as read
+                        } catch (error) {
+                            console.error('Error marking notification as read:', error);
+                        }
+                    }
+                });
+
+                fetchNotifications(); // Initial fetch
+                setInterval(fetchNotifications, 60000); // Fetch every minute
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io();
+
+            socket.on('connect', function() {
+                console.log('Socket.IO connected!');
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Socket.IO disconnected!');
+            });
+
+            socket.on('new_notification', function(data) {
+                console.log('New notification received:', data);
+                // You can add logic here to display the notification to the user
+                // For example, update the notification badge or show a toast
+                if (data.user_id === '{{ current_user.get_id() }}') {
+                    // This is a basic example, you'd want to re-fetch notifications or update the UI more robustly
+                    const notificationBadge = document.getElementById('notification-badge');
+                    if (notificationBadge) {
+                        notificationBadge.textContent = parseInt(notificationBadge.textContent) + 1;
+                    }
+                    // Optionally, add the new notification to the dropdown immediately
+                    const notificationDropdown = document.getElementById('notification-dropdown');
+                    if (notificationDropdown) {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a class="dropdown-item" href="${data.link || '#'}">${data.message}</a>`;
+                        // Remove "No new notifications" if it exists
+                        if (notificationDropdown.children.length === 1 && notificationDropdown.children[0].textContent === 'No new notifications') {
+                            notificationDropdown.innerHTML = '';
+                        }
+                        notificationDropdown.prepend(li); // Add to top
+                    }
+                }
+            });
+
+            // Example of sending a message (for testing purposes, can be removed later)
+            // setTimeout(function() {
+            //     socket.emit('send_message', {message: 'Hello from client!', username: 'TestUser'});
+            // }, 3000);
+        });
+    </script>
+    
+
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/static/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // PWA Install Prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show install button if not already installed
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+          showInstallButton();
+        }
+      });
+      
+      function showInstallButton() {
+        const installButton = document.createElement('div');
+        installButton.innerHTML = `
+          <div class="alert alert-info alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 1050; max-width: 300px;">
+            <i class="fas fa-download me-2"></i>
+            <strong>Install App</strong>
+            <p class="mb-2 small">Add this app to your home screen for quick access!</p>
+            <button type="button" class="btn btn-primary btn-sm me-2" onclick="installApp()">Install</button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        `;
+        document.body.appendChild(installButton);
+      }
+      
+      function installApp() {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('User accepted the install prompt');
+            } else {
+              console.log('User dismissed the install prompt');
+            }
+            deferredPrompt = null;
+          });
+        }
+      }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
