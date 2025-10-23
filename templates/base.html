@@ -30,9 +30,9 @@
 </head>
 <body>
     <!-- Bootstrap Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm mb-4 rounded-bottom-4">
       <div class="container-fluid">
-        <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+        <a class="navbar-brand fw-bold text-primary" href="{{ url_for('index') }}">
           <i class="fas fa-project-diagram me-2"></i>ProjectMngmt
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,53 +42,53 @@
           <ul class="navbar-nav ms-auto">
             {% if current_user.is_authenticated %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle text-secondary" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-bell"></i> <span class="badge bg-danger" id="notification-badge">0</span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" id="notification-dropdown">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-lg" aria-labelledby="navbarDropdown" id="notification-dropdown">
                         <li><a class="dropdown-item" href="#">No new notifications</a></li>
                     </ul>
                 </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('dashboard') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('dashboard') }}">
                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('create_project') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('create_project') }}">
                 <i class="fas fa-plus me-1"></i>Create Project
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('chat') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('chat') }}">
                 <i class="fas fa-comments me-1"></i>Chat
               </a>
             </li>
             {% if current_user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('view_invitations') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('view_invitations') }}">
                 <i class="fas fa-envelope-open-text me-1"></i>Invitations
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('change_password') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('change_password') }}">
                 <i class="fas fa-key me-1"></i>Change Password
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('logout') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('logout') }}">
                 <i class="fas fa-sign-out-alt me-1"></i>Logout
               </a>
             </li>
             {% endif %}
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('login') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('login') }}">
                 <i class="fas fa-sign-in-alt me-1"></i>Login
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('register') }}">
+              <a class="nav-link text-secondary" href="{{ url_for('register') }}">
                 <i class="fas fa-user-plus me-1"></i>Register
               </a>
             </li>
@@ -97,11 +97,11 @@
         </div>
       </div>
     </nav>
-    <div>
+    <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
                 <i class="fas fa-info-circle me-2"></i>{{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
@@ -111,9 +111,9 @@
         {% block content %}{% endblock %}
     </div>
     <!-- Footer -->
-    <footer class="bg-primary text-white text-center py-3 mt-4">
+    <footer class="bg-light text-secondary text-center py-3 mt-5 shadow-sm rounded-top-4">
       <div class="container">
-        <small><i class="fas fa-copyright me-1"></i>2024 ProjectMngmt. All rights reserved.</small>
+        <small><i class="fas fa-copyright me-1"></i>2025 ProjectMngmt. All rights reserved.</small>
       </div>
     </footer>
     <!-- Bootstrap JS -->

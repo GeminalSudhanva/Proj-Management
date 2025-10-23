@@ -1,18 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}Invite Member{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h2 class="card-title mb-4">Invite Member</h2>
-        <form method="POST">
-          <div class="mb-3">
-            <label for="email" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Send Invitation</button>
-        </form>
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-lg border-0 rounded-lg p-4">
+        <div class="card-body text-center">
+          <h2 class="card-title mb-4" style="color: #6c757d;"><i class="fas fa-user-plus me-2"></i>Invite Member</h2>
+          <form method="POST">
+            <div class="mb-3 text-start">
+              <label for="email" class="form-label fw-semibold">Email address</label>
+              <input type="email" class="form-control form-control-lg" id="email" name="email" placeholder="Enter member's email" required style="border-radius: 0.5rem;">
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100 mt-3" style="background-color: #6f42c1; border-color: #6f42c1; border-radius: 0.5rem;">Send Invitation</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>

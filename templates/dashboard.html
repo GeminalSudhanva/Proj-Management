@@ -2,77 +2,79 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 {% if show_new_feature_alert %}
-<div class="alert alert-success alert-dismissible fade show" role="alert">
+<div class="alert alert-pastel-success alert-dismissible fade show" role="alert" style="background-color: #e6ffe6; border-color: #a5d6a7; color: #388e3c; border-radius: 0.75rem;">
   <strong>New Feature Alert!</strong> We've added a real-time chat room for seamless team collaboration. Check it out now!
   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
 {% if show_chat_feature_alert %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
+<div class="alert alert-pastel-info alert-dismissible fade show" role="alert" style="background-color: #e0f7fa; border-color: #80cbc4; color: #00796b; border-radius: 0.75rem;">
   <strong>New Chat Feature!</strong> A new chat room feature has been added for real-time communication with your team. Explore it now!
   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
-<div class="container-fluid">
+<div class="container-fluid" style="background-color: #F0F2F5; min-height: 100vh; padding-top: 20px;">
   <div class="row">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">
+        <h2 class="mb-0" style="color: #495057;">
           <i class="fas fa-tachometer-alt me-2"></i>Dashboard
         </h2>
-        <a href="{{ url_for('create_project') }}" class="btn btn-primary">
-          <i class="fas fa-plus me-2"></i>New Project
-        </a>
-        <a href="{{ url_for('edit_profile') }}" class="btn btn-info ms-2">
-          <i class="fas fa-user-edit me-2"></i>Edit Profile
-        </a>
+        <div class="d-flex">
+          <a href="{{ url_for('create_project') }}" class="btn btn-primary me-2" style="background-color: #81B29A; border-color: #81B29A; color: #ffffff; border-radius: 0.5rem; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <i class="fas fa-plus me-2"></i>New Project
+          </a>
+          <a href="{{ url_for('edit_profile') }}" class="btn btn-secondary" style="background-color: #F2CC8F; border-color: #F2CC8F; color: #ffffff; border-radius: 0.5rem; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <i class="fas fa-user-edit me-2"></i>Edit Profile
+          </a>
+        </div>
       </div>
       
       <!-- Statistics Cards -->
       <div class="row mb-4">
-        <div class="col-md-3">
-          <div class="card stats-card text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-project-diagram fa-3x mb-3"></i>
-              <h3 class="card-title">{{ projects|length }}</h3>
-              <p class="card-text">Total Projects</p>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card h-100 shadow-sm border-0" style="background-color: #FFFFFF; border-radius: 1rem;">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <i class="fas fa-project-diagram fa-3x mb-3" style="color: #81B29A;"></i>
+              <h3 class="card-title" style="color: #495057;">{{ projects|length }}</h3>
+              <p class="card-text" style="color: #6C757D;">Total Projects</p>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="card stats-card text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-users fa-3x mb-3"></i>
-              <h3 class="card-title">{{ team_members_count|default(0) }}</h3>
-              <p class="card-text">Team Members</p>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card h-100 shadow-sm border-0" style="background-color: #FFFFFF; border-radius: 1rem;">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <i class="fas fa-users fa-3x mb-3" style="color: #F2CC8F;"></i>
+              <h3 class="card-title" style="color: #495057;">{{ team_members_count|default(0) }}</h3>
+              <p class="card-text" style="color: #6C757D;">Team Members</p>
             </div>
           </div>
         </div>
 
-        <div class="col-md-3">
-          <div class="card stats-card text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-tasks fa-3x mb-3"></i>
-              <h3 class="card-title">{{ total_tasks|default(0) }}</h3>
-              <p class="card-text">Total Tasks</p>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card h-100 shadow-sm border-0" style="background-color: #FFFFFF; border-radius: 1rem;">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <i class="fas fa-tasks fa-3x mb-3" style="color: #E07A5F;"></i>
+              <h3 class="card-title" style="color: #495057;">{{ total_tasks|default(0) }}</h3>
+              <p class="card-text" style="color: #6C757D;">Total Tasks</p>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="card stats-card text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-check-circle fa-3x mb-3"></i>
-              <h3 class="card-title">{{ completed_tasks|default(0) }}</h3>
-              <p class="card-text">Completed Tasks</p>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card h-100 shadow-sm border-0" style="background-color: #FFFFFF; border-radius: 1rem;">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <i class="fas fa-check-circle fa-3x mb-3" style="color: #81B29A;"></i>
+              <h3 class="card-title" style="color: #495057;">{{ completed_tasks|default(0) }}</h3>
+              <p class="card-text" style="color: #6C757D;">Completed Tasks</p>
             </div>
           </div>
         </div>
       </div>
       
       <!-- Projects Section -->
-      <div class="card">
-        <div class="card-header">
-          <h5 class="mb-0">
+      <div class="card shadow-lg border-0 rounded-3" style="background-color: #FFFFFF;">
+        <div class="card-header border-0 rounded-top-3" style="background-color: #A8DADC;">
+          <h5 class="mb-0" style="color: #333;">
             <i class="fas fa-folder me-2"></i>Your Projects
           </h5>
         </div>
@@ -80,18 +82,18 @@
           {% if projects %}
           <div class="row">
             {% for project in projects %}
-            <div class="col-md-4 mb-3">
-              <div class="card h-100 shadow-sm">
-                <div class="card-body">
+            <div class="col-md-4 mb-4">
+              <div class="card h-100 shadow-sm border-0 rounded-3" style="background-color: #F8F8F8;">
+                <div class="card-body d-flex flex-column">
                   <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title">
-                      <i class="fas fa-folder-open me-2"></i>{{ project.title }}
+                    <h5 class="card-title" style="color: #495057;">
+                      <i class="fas fa-folder-open me-2" style="color: #81B29A;"></i>{{ project.title }}
                     </h5>
-                    <span class="badge bg-primary">Active</span>
+                    <span class="badge rounded-pill" style="background-color: #F2CC8F; color: #333;">Active</span>
                   </div>
-                  <p class="card-text">{{ project.description }}</p>
-                  <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
+                  <p class="card-text text-muted flex-grow-1" style="color: #6C757D !important;">{{ project.description }}</p>
+                  <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small class="text-muted" style="color: #6C757D !important;">
                       <i class="fas fa-calendar me-1"></i>
                       {% if project.deadline %}
                         Due: {{ project.deadline }}
@@ -99,12 +101,12 @@
                         No deadline set
                       {% endif %}
                     </small>
-                    <div class="d-flex gap-1">
-                      <a href="{{ url_for('view_project', project_id=project._id) }}" class="btn btn-outline-primary btn-sm">
+                    <div class="d-flex gap-2">
+                      <a href="{{ url_for('view_project', project_id=project._id) }}" class="btn btn-sm" style="background-color: #81B29A; border-color: #81B29A; color: #ffffff; border-radius: 0.5rem;">
                         <i class="fas fa-eye me-1"></i>View
                       </a>
                       {% if current_user.is_authenticated and current_user.id == project.created_by %}
-                      <a href="{{ url_for('delete_project', project_id=project._id) }}" class="btn btn-outline-danger btn-sm">
+                      <a href="{{ url_for('delete_project', project_id=project._id) }}" class="btn btn-sm" style="background-color: #E07A5F; border-color: #E07A5F; color: #ffffff; border-radius: 0.5rem;">
                         <i class="fas fa-trash me-1"></i>Delete
                       </a>
                       {% endif %}
@@ -116,11 +118,11 @@
             {% endfor %}
           </div>
           {% else %}
-          <div class="text-center py-5">
-            <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
-            <h5 class="text-muted">No projects yet</h5>
-            <p class="text-muted">Create your first project to get started!</p>
-            <a href="{{ url_for('create_project') }}" class="btn btn-primary">
+          <div class="text-center py-5 rounded p-4" style="background-color: #F8F8F8;">
+            <i class="fas fa-folder-open fa-4x mb-3" style="color: #A8DADC !important;"></i>
+            <h5 class="mb-2" style="color: #495057 !important;">No projects yet</h5>
+            <p class="text-muted" style="color: #6C757D !important;">Create your first project to get started!</p>
+            <a href="{{ url_for('create_project') }}" class="btn btn-lg mt-3" style="background-color: #81B29A; border-color: #81B29A; color: #ffffff; border-radius: 0.5rem; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
               <i class="fas fa-plus me-2"></i>Create Project
             </a>
           </div>

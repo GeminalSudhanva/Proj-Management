@@ -2,41 +2,42 @@
 {% block title %}Welcome{% endblock %}
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section text-center py-5">
-  <div class="container">
-    <h1 class="display-4 fw-bold mb-3 animate__animated animate__fadeInUp">Streamline Your Workflow, Achieve More</h1>
-    <p class="lead mb-4 animate__animated animate__fadeInUp animate__delay-1s">ProjectMngmt is the ultimate solution for teams to collaborate, manage tasks, and track progress seamlessly.</p>
+<section class="hero-section text-center py-5 position-relative overflow-hidden" style="background-color: #F0F2F5;">
+  <div class="container position-relative z-index-1">
+    <h1 class="display-4 fw-bold mb-3 animate__animated animate__fadeInUp" style="color: #495057;">Streamline Your Workflow, Achieve More</h1>
+    <p class="lead mb-4 animate__animated animate__fadeInUp animate__delay-1s" style="color: #4F7942;">ProjectMngmt is the ultimate solution for teams to collaborate, manage tasks, and track progress seamlessly.</p>
     <div class="d-grid gap-2 d-sm-flex justify-content-sm-center animate__animated animate__fadeInUp animate__delay-2s">
-      <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 me-sm-3">Get Started Free</a>
-      <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">Login</a>
+      <a href="{{ url_for('register') }}" class="btn btn-lg px-4 me-sm-3 shadow-lg rounded-pill" style="background-color: #81B29A; border-color: #81B29A; color: #ffffff;">Get Started Free</a>
+      <a href="{{ url_for('login') }}" class="btn btn-lg px-4 shadow-lg rounded-pill" style="background-color: #F2CC8F; border-color: #F2CC8F; color: #ffffff;">Login</a>
     </div>
   </div>
+  <div class="hero-bg-overlay"></div>
 </section>
 
 <!-- Features Section -->
-<section class="features-section py-5 bg-light">
+<section class="features-section py-5" style="background-color: #FFFFFF;">
   <div class="container">
-    <h2 class="text-center mb-5 animate__animated animate__fadeInUp">Powerful Features for Every Team</h2>
+    <h2 class="text-center mb-5 animate__animated animate__fadeInUp" style="color: #495057;">Powerful Features for Every Team</h2>
     <div class="row text-center">
       <div class="col-md-4 mb-4">
-        <div class="feature-card animate__animated animate__fadeInUp animate__delay-1s">
-          <i class="fas fa-comments feature-icon mb-3"></i>
-          <h5 class="card-title">Real-time Collaboration</h5>
-          <p class="card-text">Work together effortlessly with integrated chat, shared documents, and instant updates.</p>
+        <div class="feature-card animate__animated animate__fadeInUp animate__delay-1s shadow-sm rounded-3 p-4" style="background-color: #F8F8F8;">
+          <i class="fas fa-comments feature-icon mb-3" style="color: #81B29A;"></i>
+          <h5 class="card-title" style="color: #495057;">Real-time Collaboration</h5>
+          <p class="card-text" style="color: #6C757D;">Work together effortlessly with integrated chat, shared documents, and instant updates.</p>
         </div>
       </div>
       <div class="col-md-4 mb-4">
-        <div class="feature-card animate__animated animate__fadeInUp animate__delay-1-5s">
-          <i class="fas fa-clipboard-check feature-icon mb-3"></i>
-          <h5 class="card-title">Intuitive Task Management</h5>
-          <p class="card-text">Organize, assign, and track tasks with customizable boards, deadlines, and progress indicators.</p>
+        <div class="feature-card animate__animated animate__fadeInUp animate__delay-1-5s shadow-sm rounded-3 p-4" style="background-color: #F8F8F8;">
+          <i class="fas fa-clipboard-check feature-icon mb-3" style="color: #F2CC8F;"></i>
+          <h5 class="card-title" style="color: #495057;">Intuitive Task Management</h5>
+          <p class="card-text" style="color: #6C757D;">Organize, assign, and track tasks with customizable boards, deadlines, and progress indicators.</p>
         </div>
       </div>
       <div class="col-md-4 mb-4">
-        <div class="feature-card animate__animated animate__fadeInUp animate__delay-2s">
-          <i class="fas fa-chart-bar feature-icon mb-3"></i>
-          <h5 class="card-title">Comprehensive Reporting</h5>
-          <p class="card-text">Gain insights into project performance with detailed reports and analytics to make informed decisions.</p>
+        <div class="feature-card animate__animated animate__fadeInUp animate__delay-2s shadow-sm rounded-3 p-4" style="background-color: #F8F8F8;">
+          <i class="fas fa-chart-bar feature-icon mb-3" style="color: #E07A5F;"></i>
+          <h5 class="card-title" style="color: #495057;">Comprehensive Reporting</h5>
+          <p class="card-text" style="color: #6C757D;">Gain insights into project performance with detailed reports and analytics to make informed decisions.</p>
         </div>
       </div>
     </div>
@@ -44,36 +45,36 @@
 </section>
 
 <!-- How It Works Section -->
-<section class="how-it-works-section py-5">
+<section class="how-it-works-section py-5" style="background-color: #F0F2F5;">
   <div class="container">
-    <h2 class="text-center mb-5 animate__animated animate__fadeInUp">Simple Steps to Success</h2>
+    <h2 class="text-center mb-5 animate__animated animate__fadeInUp" style="color: #495057;">Simple Steps to Success</h2>
     <div class="row text-center">
       <div class="col-md-3 mb-4">
-        <div class="step-card animate__animated animate__fadeInUp animate__delay-1s">
-          <div class="step-icon mb-3"><i class="fas fa-user-plus"></i></div>
-          <h5 class="card-title">1. Sign Up</h5>
-          <p class="card-text">Create your free account in minutes and set up your team.</p>
+        <div class="step-card animate__animated animate__fadeInUp animate__delay-1s shadow-sm rounded-3 p-4" style="background-color: #FFFFFF;">
+          <div class="step-icon mb-3" style="color: #81B29A;"><i class="fas fa-user-plus"></i></div>
+          <h5 class="card-title" style="color: #495057;">1. Sign Up</h5>
+          <p class="card-text" style="color: #6C757D;">Create your free account in minutes and set up your team.</p>
         </div>
       </div>
       <div class="col-md-3 mb-4">
-        <div class="step-card animate__animated animate__fadeInUp animate__delay-1-5s">
-          <div class="step-icon mb-3"><i class="fas fa-project-diagram"></i></div>
-          <h5 class="card-title">2. Create Project</h5>
-          <p class="card-text">Define your project, set goals, and invite your team members.</p>
+        <div class="step-card animate__animated animate__fadeInUp animate__delay-1-5s shadow-sm rounded-3 p-4" style="background-color: #FFFFFF;">
+          <div class="step-icon mb-3" style="color: #F2CC8F;"><i class="fas fa-project-diagram"></i></div>
+          <h5 class="card-title" style="color: #495057;">2. Create Project</h5>
+          <p class="card-text" style="color: #6C757D;">Define your project, set goals, and invite your team members.</p>
         </div>
       </div>
       <div class="col-md-3 mb-4">
-        <div class="step-card animate__animated animate__fadeInUp animate__delay-2s">
-          <div class="step-icon mb-3"><i class="fas fa-tasks"></i></div>
-          <h5 class="card-title">3. Manage Tasks</h5>
-          <p class="card-text">Assign tasks, track progress, and collaborate in real-time.</p>
+        <div class="step-card animate__animated animate__fadeInUp animate__delay-2s shadow-sm rounded-3 p-4" style="background-color: #FFFFFF;">
+          <div class="step-icon mb-3" style="color: #E07A5F;"><i class="fas fa-tasks"></i></div>
+          <h5 class="card-title" style="color: #495057;">3. Manage Tasks</h5>
+          <p class="card-text" style="color: #6C757D;">Assign tasks, track progress, and collaborate in real-time.</p>
         </div>
       </div>
       <div class="col-md-3 mb-4">
-        <div class="step-card animate__animated animate__fadeInUp animate__delay-2-5s">
-          <div class="step-icon mb-3"><i class="fas fa-chart-line"></i></div>
-          <h5 class="card-title">4. Analyze & Grow</h5>
-          <p class="card-text">Monitor performance, identify areas for improvement, and achieve your objectives.</p>
+        <div class="step-card animate__animated animate__fadeInUp animate__delay-2-5s shadow-sm rounded-3 p-4" style="background-color: #FFFFFF;">
+          <div class="step-icon mb-3" style="color: #A8DADC;"><i class="fas fa-chart-line"></i></div>
+          <h5 class="card-title" style="color: #495057;">4. Analyze & Grow</h5>
+          <p class="card-text" style="color: #6C757D;">Monitor performance, identify areas for improvement, and achieve your objectives.</p>
         </div>
       </div>
     </div>
@@ -81,12 +82,12 @@
 </section>
 
 <!-- Call to Action Section -->
-<section class="call-to-action-section bg-primary text-white text-center py-5">
+<section class="call-to-action-section text-white text-center py-5" style="background-color: #81B29A;">
   <div class="container">
     <h2 class="mb-4">Ready to Elevate Your Project Management?</h2>
     <p class="lead mb-4">Join thousands of successful teams who trust ProjectMngmt to streamline their workflow and achieve their goals.</p>
-    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-3">Get Started Today</a>
-    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">Sign In</a>
+    <a href="{{ url_for('register') }}" class="btn btn-lg me-3 rounded-pill" style="background-color: #F2CC8F; border-color: #F2CC8F; color: #ffffff;">Get Started Today</a>
+    <a href="{{ url_for('login') }}" class="btn btn-lg rounded-pill" style="background-color: #E07A5F; border-color: #E07A5F; color: #ffffff;">Sign In</a>
   </div>
 </section>
 

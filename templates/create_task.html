@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}Create Task{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
+<div class="row justify-content-center mt-5">
   <div class="col-md-6">
-    <div class="card shadow-sm">
+    <div class="card shadow-lg p-4 border-0 rounded-lg" style="background-color: #f0f4f8; border-radius: 1rem;">
       <div class="card-body">
-        <h2 class="card-title mb-4">Create Task</h2>
+        <h2 class="card-title text-center mb-4" style="color: #66bb6a;"><i class="fas fa-clipboard-list me-2"></i>Create New Task</h2>
         <form method="POST">
           <div class="mb-3">
-            <label for="title" class="form-label">Task Title</label>
-            <input type="text" class="form-control" id="title" name="title" placeholder="Enter task title" required>
+            <label for="title" class="form-label" style="color: #495057;">Task Title</label>
+            <input type="text" class="form-control form-control-lg rounded-pill" id="title" name="title" placeholder="Enter task title" required style="background-color: #ffffff; border-color: #e0f7fa;">
           </div>
           <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Enter task description" required></textarea>
+            <label for="description" class="form-label" style="color: #495057;">Description</label>
+            <textarea class="form-control form-control-lg rounded-3" id="description" name="description" rows="3" placeholder="Enter task description" required style="background-color: #ffffff; border-color: #e0f7fa;"></textarea>
           </div>
           <div class="mb-3">
-            <label for="assigned_to" class="form-label">Assign To</label>
-            <select class="form-select" id="assigned_to" name="assigned_to" required>
+            <label for="assigned_to" class="form-label" style="color: #495057;">Assign To</label>
+            <select class="form-select form-select-lg rounded-pill" id="assigned_to" name="assigned_to" required style="background-color: #ffffff; border-color: #e0f7fa;">
               <option value="" disabled selected>Select team member</option>
               {% for member in team_members %}
                 <option value="{{ member.id }}">{{ member.name }}</option>
@@ -25,10 +25,10 @@
             </select>
           </div>
           <div class="mb-3">
-            <label for="due_date" class="form-label">Due Date</label>
-            <input type="date" class="form-control" id="due_date" name="due_date" required>
+            <label for="due_date" class="form-label" style="color: #495057;">Due Date</label>
+            <input type="date" class="form-control form-control-lg rounded-pill" id="due_date" name="due_date" required style="background-color: #ffffff; border-color: #e0f7fa;">
           </div>
-          <button type="submit" class="btn btn-primary w-100">Create Task</button>
+          <button type="submit" class="btn btn-lg w-100 mt-3 rounded-pill" style="background-color: #a5d6a7; border-color: #a5d6a7; color: #ffffff;">Create Task</button>
         </form>
       </div>
     </div>

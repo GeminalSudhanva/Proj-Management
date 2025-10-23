@@ -1,45 +1,47 @@
 {% extends 'base.html' %}
 {% block title %}Invitations{% endblock %}
 {% block content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <h2 class="mb-4"><i class="fas fa-envelope-open-text me-2"></i>Invitations</h2>
-      {% if invitations %}
-      <ul class="list-group">
-        {% for invitation in invitations %}
-        <li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-          <div>
-            <div class="fw-bold">
-              <i class="fas fa-folder-open me-1"></i>{{ invitation.project.title if invitation.project else 'Unknown Project' }}
+<div class="container-fluid mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-lg border-0 rounded-lg p-4" style="background-color: #f0f4f8; border-radius: 1rem;"> <!-- Pastel background and rounded corners -->
+        <h2 class="mb-4 text-center" style="color: #66bb6a;"><i class="fas fa-envelope-open-text me-2"></i>Invitations</h2> <!-- Pastel green heading -->
+        {% if invitations %}
+        <ul class="list-group list-group-flush">
+          {% for invitation in invitations %}
+          <li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 p-3 border rounded shadow-sm" style="background-color: #ffffff; border-color: #e0f7fa; border-radius: 0.75rem;"> <!-- White background, pastel border, rounded corners -->
+            <div>
+              <div class="fw-bold fs-5" style="color: #495057;">
+                <i class="fas fa-folder-open me-2" style="color: #80cbc4;"></i>{{ invitation.project.title if invitation.project else 'Unknown Project' }}
+              </div>
+              <div class="small text-muted mt-1">
+                Invited by: <span class="fw-semibold">{{ invitation.inviter.name if invitation.inviter else 'Unknown' }}</span> ({{ invitation.inviter.email if invitation.inviter else '' }})
+              </div>
             </div>
-            <div class="small text-muted">
-              Invited by: {{ invitation.inviter.name if invitation.inviter else 'Unknown' }} ({{ invitation.inviter.email if invitation.inviter else '' }})
+            <div class="d-flex align-items-center gap-2 mt-3 mt-md-0">
+              <span class="badge rounded-pill px-3 py-2" style="background-color: #b2ebf2; color: #00796b;">{{ invitation.status|capitalize }}</span> <!-- Pastel blue badge -->
+              {% if invitation.status == 'pending' %}
+              <form method="POST" action="{{ url_for('respond_to_invitation', invitation_id=invitation._id) }}" class="d-inline">
+                <input type="hidden" name="response" value="accept">
+                <button type="submit" class="btn btn-sm" style="background-color: #a5d6a7; border-color: #a5d6a7; color: #ffffff; border-radius: 0.5rem;"><i class="fas fa-check me-1"></i>Accept</button> <!-- Pastel green accept button -->
+              </form>
+              <form method="POST" action="{{ url_for('respond_to_invitation', invitation_id=invitation._id) }}" class="d-inline">
+                <input type="hidden" name="response" value="decline">
+                <button type="submit" class="btn btn-sm" style="background-color: #ef9a9a; border-color: #ef9a9a; color: #ffffff; border-radius: 0.5rem;"><i class="fas fa-times me-1"></i>Decline</button> <!-- Pastel red decline button -->
+              </form>
+              {% endif %}
             </div>
-          </div>
-          <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-            <span class="badge bg-secondary rounded-pill">{{ invitation.status|capitalize }}</span>
-            {% if invitation.status == 'pending' %}
-            <form method="POST" action="{{ url_for('respond_to_invitation', invitation_id=invitation._id) }}" class="d-inline">
-              <input type="hidden" name="response" value="accept">
-              <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check me-1"></i>Accept</button>
-            </form>
-            <form method="POST" action="{{ url_for('respond_to_invitation', invitation_id=invitation._id) }}" class="d-inline">
-              <input type="hidden" name="response" value="decline">
-              <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-times me-1"></i>Decline</button>
-            </form>
-            {% endif %}
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <div class="text-center py-5">
-        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-        <h5 class="text-muted">No invitations</h5>
-        <p class="text-muted">You have no pending invitations at this time.</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-5 rounded p-4" style="background-color: #e0f2f7;"> <!-- Pastel blue background -->
+          <i class="fas fa-inbox fa-5x text-muted mb-4" style="color: #90a4ae !important;"></i> <!-- Muted pastel grey icon -->
+          <h5 class="text-muted mb-2" style="color: #78909c !important;">No invitations</h5>
+          <p class="text-muted" style="color: #90a4ae !important;">You have no pending invitations at this time.</p>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
 </div>

@@ -4,15 +4,15 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Edit Profile</h4>
+            <div class="card shadow-lg border-0 rounded-lg bg-pastel-light p-4">
+                <div class="card-header bg-pastel-blue text-white text-center rounded-top">
+                    <h4 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Profile</h4>
                 </div>
                 <div class="card-body">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                <div class="alert alert-pastel-{{ category }} alert-dismissible fade show" role="alert">
                                     {{ message }}
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
@@ -21,11 +21,11 @@
                     {% endwith %}
                     <form method="POST">
                         <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                            <label for="name" class="form-label text-pastel-dark">Name</label>
+                            <input type="text" class="form-control form-control-lg" id="name" name="name" value="{{ user.name }}" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Update Profile</button>
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-pastel-primary btn-lg w-100">Update Profile</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-pastel-secondary btn-lg w-100 mt-2">Cancel</a>
                     </form>
                 </div>
             </div>

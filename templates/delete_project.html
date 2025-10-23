@@ -1,22 +1,22 @@
 {% extends 'base.html' %}
 {% block title %}Delete Project - {{ project.title }}{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
+<div class="row justify-content-center mt-5">
   <div class="col-md-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h2 class="card-title mb-4 text-danger">
+    <div class="card shadow-lg border-0 rounded-lg bg-pastel-light">
+      <div class="card-body p-4">
+        <h2 class="card-title text-center mb-4 text-pastel-danger">
           <i class="fas fa-exclamation-triangle me-2"></i>Delete Project
         </h2>
         
-        <div class="alert alert-warning">
+        <div class="alert alert-pastel-warning text-center">
           <h5 class="alert-heading">Warning!</h5>
           <p class="mb-0">You are about to delete the project "<strong>{{ project.title }}</strong>". This action cannot be undone.</p>
         </div>
         
-        <div class="mb-4">
+        <div class="mb-4 text-center">
           <h5>Project Details:</h5>
-          <ul class="list-unstyled">
+          <ul class="list-unstyled text-pastel-dark">
             <li><strong>Title:</strong> {{ project.title }}</li>
             <li><strong>Description:</strong> {{ project.description }}</li>
             <li><strong>Course:</strong> {{ project.course }}</li>
@@ -26,10 +26,10 @@
         </div>
         
         {% if incomplete_tasks %}
-        <div class="alert alert-danger">
+        <div class="alert alert-pastel-danger text-center">
           <h5 class="alert-heading">Cannot Delete Project</h5>
           <p class="mb-2">The following tasks are not completed:</p>
-          <ul class="mb-0">
+          <ul class="mb-0 list-unstyled">
             {% for task in incomplete_tasks %}
             <li>{{ task.title }} (Status: {{ task.status }})</li>
             {% endfor %}
@@ -38,20 +38,20 @@
           <p class="mb-0"><strong>Please complete all tasks before deleting the project.</strong></p>
         </div>
         {% else %}
-        <div class="alert alert-success">
+        <div class="alert alert-pastel-success text-center">
           <h5 class="alert-heading">All Tasks Completed</h5>
           <p class="mb-0">All tasks in this project are marked as "Done". You can proceed with deletion.</p>
         </div>
         {% endif %}
         
         <form method="POST">
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 justify-content-center">
             {% if not incomplete_tasks %}
-            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this project? This action cannot be undone.')">
+            <button type="submit" class="btn btn-pastel-danger btn-lg rounded-pill" onclick="return confirm('Are you sure you want to delete this project? This action cannot be undone.')">
               <i class="fas fa-trash me-2"></i>Delete Project
             </button>
             {% endif %}
-            <a href="{{ url_for('view_project', project_id=project._id) }}" class="btn btn-secondary">
+            <a href="{{ url_for('view_project', project_id=project._id) }}" class="btn btn-pastel-secondary btn-lg rounded-pill">
               <i class="fas fa-arrow-left me-2"></i>Cancel
             </a>
           </div>
@@ -60,4 +60,4 @@
     </div>
   </div>
 </div>
-{% endblock %} 
+{% endblock %}
