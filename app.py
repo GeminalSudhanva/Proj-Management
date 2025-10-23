@@ -1380,7 +1380,7 @@ def handle_request_online_users():
     emit('online_users', get_online_users_list())
 
 @socketio.on('request_chat_rooms')
-def handle_request_chat_rooms():
+def handle_request_chat_rooms(data):
     chat_rooms = [{'id': 'general', 'name': 'Global Chat', 'type': 'global'}]
     if current_user.is_authenticated:
         # Fetch projects the user is a member of

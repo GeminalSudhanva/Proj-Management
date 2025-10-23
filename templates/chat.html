@@ -105,7 +105,7 @@
             console.log('Connected to chat server!');
             // Request list of online users and chat rooms upon connection
             socket.emit('request_online_users');
-            socket.emit('request_chat_rooms');
+            socket.emit('request_chat_rooms', {});
             // Join the initial room (either from URL or default 'general')
             joinRoom(currentRoomId, currentRoomName, currentRoomType);
         });
