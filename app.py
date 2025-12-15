@@ -3,6 +3,7 @@ from flask_pymongo import PyMongo
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 import os
@@ -19,7 +20,9 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+# Configure CORS to support credentials (session cookies) for mobile app
+CORS(app, supports_credentials=True, origins=["*"], allow_headers=["Content-Type", "Authorization"])
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-secret-key")
 
 # Flask-Mail Configuration
@@ -382,6 +385,16 @@ def login():
                 login_user(user)
                 # Set updates_seen flag to False on successful login to show the alert
                 mongo.db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'updates_seen': False}})
+                
+                # For mobile app, return JSON with user data
+                if request.content_type and 'multipart/form-data' in request.content_type:
+                    return jsonify({
+                        'success': True,
+                        'user_id': str(user_data['_id']),
+                        'name': user_data.get('name', ''),
+                        'email': user_data.get('email', '')
+                    })
+                
                 flash("Login successful!")
                 # Set updates_seen and chat_feature_seen flags to False on successful login to show the alerts
                 mongo.db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'updates_seen': False, 'chat_feature_seen': False}})
@@ -590,6 +603,203 @@ def dashboard():
         logger.error(f"Error in dashboard route: {e}")
         return "Error loading dashboard", 500
 
+@app.route("/api/projects")
+@login_required
+def get_projects_api():
+    """API endpoint for mobile app to get projects as JSON"""
+    try:
+        # Get projects where the user is a member
+        user_projects = list(mongo.db.projects.find({"team_members": current_user.id}))
+        
+        # Get projects created by the user
+        created_projects = list(mongo.db.projects.find({"created_by": current_user.id}))
+        
+        # Combine and remove duplicates
+        all_projects = []
+        project_ids = set()
+        
+        for project in user_projects + created_projects:
+            if str(project["_id"]) not in project_ids:
+                project_ids.add(str(project["_id"]))
+                
+                # Calculate progress for each project
+                project_tasks = list(mongo.db.tasks.find({"project_id": str(project["_id"])}))
+                total_tasks = len(project_tasks)
+                completed_tasks = len([task for task in project_tasks if task["status"] == "Done"])
+                completion_percentage = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+                
+                # Convert ObjectId to string for JSON serialization
+                project_dict = {
+                    "_id": str(project["_id"]),
+                    "title": project.get("title", ""),
+                    "description": project.get("description", ""),
+                    "course": project.get("course", ""),
+                    "deadline": project.get("deadline", ""),
+                    "created_by": project.get("created_by", ""),
+                    "team_members": project.get("team_members", []),
+                    "completion_percentage": round(completion_percentage, 2),
+                    "total_tasks": total_tasks,
+                    "completed_tasks": completed_tasks,
+                }
+                all_projects.append(project_dict)
+        
+        return jsonify(all_projects)
+    except Exception as e:
+        logger.error(f"Error in get_projects_api route: {e}")
+        return jsonify({"error": "Failed to fetch projects"}), 500
+
+@app.route("/api/dashboard/stats")
+@login_required
+def get_dashboard_stats():
+    """Get dashboard statistics for the current user"""
+    try:
+        user_id = current_user.id
+        
+        # Get all projects where user is creator or member
+        projects = list(mongo.db.projects.find({
+            '$or': [
+                {'created_by': user_id},
+                {'team_members': user_id}
+            ]
+        }))
+        
+        # Get all tasks for user's projects
+        project_ids = [str(p['_id']) for p in projects]
+        all_tasks = list(mongo.db.tasks.find({
+            'project_id': {'$in': project_ids}
+        }))
+        
+        # Calculate task statistics
+        total_tasks = len(all_tasks)
+        completed_tasks = len([t for t in all_tasks if t.get('status') == 'Done'])
+        in_progress_tasks = len([t for t in all_tasks if t.get('status') == 'In Progress'])
+        todo_tasks = len([t for t in all_tasks if t.get('status') == 'To-do'])
+        
+        # Get unique team members across all projects
+        team_members = set()
+        for project in projects:
+            # Add creator
+            team_members.add(project.get('created_by'))
+            # Add team members
+            members = project.get('team_members', [])
+            if isinstance(members, list):
+                team_members.update(members)
+        
+        # Get recent projects (last 5)
+        recent_projects = sorted(projects, key=lambda x: x.get('created_at', ''), reverse=True)[:5]
+        recent_projects_data = []
+        for proj in recent_projects:
+            # Get task count for this project
+            proj_tasks = [t for t in all_tasks if t.get('project_id') == str(proj['_id'])]
+            proj_completed = len([t for t in proj_tasks if t.get('status') == 'Done'])
+            proj_total = len(proj_tasks)
+            
+            recent_projects_data.append({
+                '_id': str(proj['_id']),
+                'title': proj.get('title', ''),
+                'completion_percentage': (proj_completed / proj_total * 100) if proj_total > 0 else 0,
+                'total_tasks': proj_total,
+                'completed_tasks': proj_completed
+            })
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_projects': len(projects),
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks,
+                'in_progress_tasks': in_progress_tasks,
+                'todo_tasks': todo_tasks,
+                'team_members_count': len(team_members),
+                'recent_projects': recent_projects_data
+            }
+        })
+    except Exception as e:
+        print(f"Error getting dashboard stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route("/api/project/<project_id>")
+@login_required
+def get_project_api(project_id):
+    """API endpoint to get project details"""
+    try:
+        project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
+        
+        if not project:
+            logger.warning(f"Project {project_id} not found in database")
+            return jsonify({"error": "Project not found"}), 404
+        
+        # Check if user has access - creator OR team member
+        is_creator = project.get("created_by") == current_user.id
+        is_member = current_user.id in project.get("team_members", [])
+        
+        logger.info(f"Access check for project {project_id}: user={current_user.id}, is_creator={is_creator}, is_member={is_member}")
+        
+        if not (is_creator or is_member):
+            logger.warning(f"Access denied for user {current_user.id} to project {project_id}")
+            return jsonify({"error": "Access denied"}), 403
+        
+        # Get tasks for this project
+        tasks = list(mongo.db.tasks.find({"project_id": project_id}))
+        
+        # Calculate progress
+        total_tasks = len(tasks)
+        completed_tasks = len([task for task in tasks if task["status"] == "Done"])
+        completion_percentage = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+        
+        # Convert tasks to JSON-serializable format and populate assigned_to
+        tasks_list = []
+        for task in tasks:
+            task_dict = {
+                "_id": str(task["_id"]),
+                "title": task.get("title", ""),
+                "description": task.get("description", ""),
+                "status": task.get("status", "To-do"),
+                "due_date": task.get("due_date", ""),
+                "project_id": task.get("project_id", ""),
+                "created_by": task.get("created_by", ""),
+                "created_at": str(task.get("created_at", ""))
+            }
+            
+            # Populate assigned_to with user details
+            if task.get("assigned_to"):
+                assigned_user = mongo.db.users.find_one({"_id": ObjectId(task["assigned_to"])})
+                if assigned_user:
+                    task_dict["assigned_to"] = {
+                        "id": str(assigned_user["_id"]),
+                        "name": assigned_user.get("name", "Unknown User"),
+                        "email": assigned_user.get("email", "")
+                    }
+                else:
+                    task_dict["assigned_to"] = None
+            else:
+                task_dict["assigned_to"] = None
+            
+            tasks_list.append(task_dict)
+        
+        # Convert project to JSON-serializable format with ALL fields
+        project_dict = {
+            "_id": str(project["_id"]),
+            "title": project.get("title", ""),
+            "description": project.get("description", ""),
+            "course": project.get("course", ""),
+            "deadline": project.get("deadline", ""),
+            "created_by": project.get("created_by", ""),
+            "team_members": project.get("team_members", []),
+            "created_at": str(project.get("created_at", "")),
+            "completion_percentage": round(completion_percentage, 2),
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_tasks,
+            "tasks": tasks_list
+        }
+        
+        logger.info(f"Returning project {project_id}: created_by={project_dict['created_by']}, team_members={project_dict['team_members']}, tasks_count={len(tasks_list)}")
+        return jsonify(project_dict)
+    except Exception as e:
+        logger.error(f"Error fetching project {project_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/project/create", methods=["GET", "POST"])
 @login_required
 def create_project():
@@ -688,12 +898,16 @@ def delete_project(project_id):
             # Get all tasks for this project
             tasks = list(mongo.db.tasks.find({"project_id": project_id}))
             
-            # Check if all tasks are completed
-            incomplete_tasks = [task for task in tasks if task["status"] != "Done"]
+            # For mobile app, skip the incomplete tasks check
+            is_mobile = request.content_type and 'multipart/form-data' in request.content_type
             
-            if incomplete_tasks:
-                flash("Cannot delete project. All tasks must be completed first.")
-                return redirect(url_for("view_project", project_id=project_id))
+            # Check if all tasks are completed (only for web)
+            if not is_mobile:
+                incomplete_tasks = [task for task in tasks if task["status"] != "Done"]
+                
+                if incomplete_tasks:
+                    flash("Cannot delete project. All tasks must be completed first.")
+                    return redirect(url_for("view_project", project_id=project_id))
             
             # Delete all tasks associated with this project
             mongo.db.tasks.delete_many({"project_id": project_id})
@@ -709,6 +923,10 @@ def delete_project(project_id):
             
             # Delete the project
             mongo.db.projects.delete_one({"_id": ObjectId(project_id)})
+            
+            # For mobile app, return JSON
+            if request.content_type and 'multipart/form-data' in request.content_type:
+                return jsonify({'success': True, 'message': 'Project deleted successfully'})
             
             flash("Project deleted successfully!")
             return redirect(url_for("dashboard"))
@@ -773,6 +991,148 @@ def invite_member(project_id):
     except Exception as e:
         logger.error(f"Error in invite_member route: {e}")
         return "Error inviting member", 500
+
+# API endpoint for mobile app invitations
+@app.route("/api/invite/<project_id>", methods=["POST"])
+@login_required
+def api_invite_member(project_id):
+    """API endpoint for mobile app to invite members to a project"""
+    try:
+        project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
+        
+        if not project:
+            return jsonify({"success": False, "error": "Project not found"}), 404
+        
+        # Check if user is the project creator
+        if project["created_by"] != current_user.id:
+            return jsonify({"success": False, "error": "Only the project creator can invite members"}), 403
+        
+        # Get email from form data
+        email = request.form.get("email")
+        
+        if not email:
+            return jsonify({"success": False, "error": "Email is required"}), 400
+        
+        # Find user by email
+        invited_user = mongo.db.users.find_one({"email": email})
+        
+        if not invited_user:
+            return jsonify({"success": False, "error": "User with this email not found"}), 404
+        
+        invited_user_id = str(invited_user["_id"])
+        
+        # Check if user is already a team member
+        if invited_user_id in project.get("team_members", []):
+            return jsonify({"success": False, "error": "User is already a team member"}), 400
+        
+        # Check if user is the project creator
+        if invited_user_id == project["created_by"]:
+            return jsonify({"success": False, "error": "Cannot invite the project creator"}), 400
+        
+        # Create invitation in invitations collection
+        invitation = {
+            "project_id": project_id,
+            "project_title": project["title"],
+            "invited_by": current_user.id,
+            "invited_by_name": current_user.name,
+            "invited_user": invited_user_id,
+            "status": "pending",
+            "created_at": datetime.utcnow()
+        }
+        mongo.db.invitations.insert_one(invitation)
+        
+        # Create notification for the invited user
+        notification = {
+            "user_id": invited_user_id,
+            "type": "project_invitation",
+            "message": f"You have been invited to join the project '{project['title']}' by {current_user.name}",
+            "project_id": project_id,
+            "project_title": project["title"],
+            "invited_by": current_user.id,
+            "invited_by_name": current_user.name,
+            "read": False,
+            "created_at": datetime.utcnow()
+        }
+        mongo.db.notifications.insert_one(notification)
+        
+        logger.info(f"User {invited_user['name']} invited to project {project['title']} by {current_user.name}")
+        
+        return jsonify({
+            "success": True, 
+            "message": f"{invited_user['name']} has been invited to the project!"
+        })
+    except Exception as e:
+        logger.error(f"Error in api_invite_member route: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# API endpoint to get invitations for current user
+@app.route("/api/invitations")
+@login_required
+def api_get_invitations():
+    """Get all pending invitations for the current user"""
+    try:
+        invitations = list(mongo.db.invitations.find({
+            "invited_user": current_user.id,
+            "status": "pending"
+        }))
+        
+        # Convert ObjectId to string
+        for inv in invitations:
+            inv["_id"] = str(inv["_id"])
+        
+        return jsonify(invitations)
+    except Exception as e:
+        logger.error(f"Error fetching invitations: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# API endpoint to respond to invitation (accept/decline)
+@app.route("/api/invitation/<invitation_id>/respond", methods=["POST"])
+@login_required
+def api_respond_invitation(invitation_id):
+    """Accept or decline a project invitation"""
+    try:
+        invitation = mongo.db.invitations.find_one({"_id": ObjectId(invitation_id)})
+        
+        if not invitation:
+            return jsonify({"success": False, "error": "Invitation not found"}), 404
+        
+        # Verify the invitation is for the current user
+        if invitation["invited_user"] != current_user.id:
+            return jsonify({"success": False, "error": "Unauthorized"}), 403
+        
+        action = request.json.get("action")  # 'accept' or 'decline'
+        
+        if action == "accept":
+            # Add user to project team members
+            mongo.db.projects.update_one(
+                {"_id": ObjectId(invitation["project_id"])},
+                {"$addToSet": {"team_members": current_user.id}}
+            )
+            
+            # Update invitation status
+            mongo.db.invitations.update_one(
+                {"_id": ObjectId(invitation_id)},
+                {"$set": {"status": "accepted"}}
+            )
+            
+            logger.info(f"User {current_user.name} accepted invitation to project {invitation['project_id']}")
+            return jsonify({"success": True, "message": "Invitation accepted"})
+            
+        elif action == "decline":
+            # Update invitation status
+            mongo.db.invitations.update_one(
+                {"_id": ObjectId(invitation_id)},
+                {"$set": {"status": "declined"}}
+            )
+            
+            logger.info(f"User {current_user.name} declined invitation to project {invitation['project_id']}")
+            return jsonify({"success": True, "message": "Invitation declined"})
+        else:
+            return jsonify({"success": False, "error": "Invalid action"}), 400
+            
+    except Exception as e:
+        logger.error(f"Error responding to invitation: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/invitations")
 @login_required
@@ -864,6 +1224,8 @@ def create_task(project_id):
             assigned_to = request.form.get("assigned_to")
             due_date = request.form.get("due_date")
             
+            logger.info(f"Creating task: title={title}, assigned_to={assigned_to}, project_id={project_id}")
+            
             new_task = {
                 "title": title,
                 "description": description,
@@ -929,16 +1291,225 @@ def update_task_status(task_id):
         new_status = request.json.get("status")
         if new_status not in ["To-do", "In Progress", "Done"]:
             return jsonify({"success": False, "message": "Invalid status"})
-        
+        # Update task status
         mongo.db.tasks.update_one(
             {"_id": ObjectId(task_id)},
             {"$set": {"status": new_status}}
         )
         
+        # Create notification if task is completed
+        if new_status == "Done":
+            task = mongo.db.tasks.find_one({"_id": ObjectId(task_id)})
+            project = mongo.db.projects.find_one({"_id": ObjectId(task["project_id"])})
+            
+            # Notify project creator
+            if project and project.get("created_by") != current_user.id:
+                notification = {
+                    "user_id": project["created_by"],
+                    "type": "task_completed",
+                    "message": f"Task '{task['title']}' has been completed in project '{project['title']}'",
+                    "task_id": task_id,
+                    "task_title": task['title'],
+                    "project_id": task["project_id"],
+                    "project_title": project['title'],
+                    "completed_by": current_user.id,
+                    "completed_by_name": current_user.name,
+                    "read": False,
+                    "created_at": datetime.utcnow()
+                }
+                mongo.db.notifications.insert_one(notification)
+                logger.info(f"Task '{task['title']}' completed by {current_user.name}")
+        
         return jsonify({"success": True, "message": "Task status updated"})
     except Exception as e:
-        logger.error(f"Error in update_task_status route: {e}")
-        return "Error updating task status", 500
+        logger.error(f"Error updating task status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Mobile API endpoint to mark task as complete
+@app.route("/api/task/<task_id>/complete", methods=["POST"])
+@login_required
+def api_complete_task(task_id):
+    """Mark a task as complete (mobile app)"""
+    try:
+        task = mongo.db.tasks.find_one({"_id": ObjectId(task_id)})
+        if not task:
+            return jsonify({"success": False, "message": "Task not found"}), 404
+        
+        # Check if user is assigned to this task
+        if task.get("assigned_to") != current_user.id:
+            return jsonify({"success": False, "message": "You are not assigned to this task"}), 403
+        
+        # Check if task is already done
+        if task.get("status") == "Done":
+            return jsonify({"success": False, "message": "Task is already completed"}), 400
+        
+        # Update task status to Done
+        mongo.db.tasks.update_one(
+            {"_id": ObjectId(task_id)},
+            {"$set": {"status": "Done"}}
+        )
+        
+        # Get project details
+        project = mongo.db.projects.find_one({"_id": ObjectId(task["project_id"])})
+        if not project:
+            return jsonify({"success": False, "message": "Project not found"}), 404
+        
+        # Calculate updated progress
+        all_tasks = list(mongo.db.tasks.find({"project_id": task["project_id"]}))
+        total_tasks = len(all_tasks)
+        completed_tasks = len([t for t in all_tasks if t.get("status") == "Done"])
+        progress_percentage = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+        
+        # Create notification for project creator
+        if project.get("created_by") and project["created_by"] != current_user.id:
+            user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+            notification = {
+                "user_id": project["created_by"],
+                "type": "task_completed",
+                "message": f"Team member {user.get('name', 'Unknown')} has completed task '{task['title']}'. Please review.",
+                "task_id": task_id,
+                "task_title": task['title'],
+                "project_id": task["project_id"],
+                "project_title": project['title'],
+                "completed_by": current_user.id,
+                "completed_by_name": user.get('name', 'Unknown'),
+                "read": False,
+                "created_at": datetime.utcnow()
+            }
+            mongo.db.notifications.insert_one(notification)
+            logger.info(f"Task '{task['title']}' marked as complete by {user.get('name')}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Task marked as complete",
+            "task": {
+                "_id": str(task["_id"]),
+                "status": "Done"
+            },
+            "progress": {
+                "total_tasks": total_tasks,
+                "completed_tasks": completed_tasks,
+                "progress_percentage": round(progress_percentage, 2)
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error completing task: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Mobile API endpoint to delete a task
+@app.route("/api/task/<task_id>/delete", methods=["POST"])
+@login_required
+def api_delete_task(task_id):
+    """Delete a task (mobile app) - only project creator can delete"""
+    try:
+        task = mongo.db.tasks.find_one({"_id": ObjectId(task_id)})
+        if not task:
+            return jsonify({"success": False, "message": "Task not found"}), 404
+        
+        # Get project details
+        project = mongo.db.projects.find_one({"_id": ObjectId(task["project_id"])})
+        if not project:
+            return jsonify({"success": False, "message": "Project not found"}), 404
+        
+        # Check if user is the project creator
+        if project.get("created_by") != current_user.id:
+            return jsonify({"success": False, "message": "Only project creator can delete tasks"}), 403
+        
+        # Delete the task
+        mongo.db.tasks.delete_one({"_id": ObjectId(task_id)})
+        
+        # Remove task from project's tasks list
+        mongo.db.projects.update_one(
+            {"_id": ObjectId(task["project_id"])},
+            {"$pull": {"tasks": task_id}}
+        )
+        
+        logger.info(f"Task '{task['title']}' deleted by {current_user.name}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Task deleted successfully"
+        })
+    except Exception as e:
+        logger.error(f"Error deleting task: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+
+# API endpoint to upload profile picture
+@app.route("/api/profile/upload-picture", methods=["POST"])
+@login_required
+def upload_profile_picture():
+    """Upload user profile picture (base64 encoded)"""
+    try:
+        data = request.get_json()
+        profile_picture = data.get("profile_picture")
+        
+        if not profile_picture:
+            return jsonify({"success": False, "message": "No image provided"}), 400
+        
+        # Update user's profile picture
+        mongo.db.users.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$set": {"profile_picture": profile_picture}}
+        )
+        
+        logger.info(f"Profile picture updated for user {current_user.id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile picture updated successfully",
+            "profile_picture": profile_picture
+        })
+    except Exception as e:
+        logger.error(f"Error uploading profile picture: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# API endpoint to remove profile picture
+@app.route("/api/profile/remove-picture", methods=["POST"])
+@login_required
+def remove_profile_picture():
+    """Remove user profile picture"""
+    try:
+        # Remove profile picture from user
+        mongo.db.users.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$unset": {"profile_picture": ""}}
+        )
+        
+        logger.info(f"Profile picture removed for user {current_user.id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile picture removed successfully"
+        })
+    except Exception as e:
+        logger.error(f"Error removing profile picture: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+
+# API endpoint to get user details by ID
+@app.route("/api/user/<user_id>")
+@login_required
+def api_get_user(user_id):
+    """Get user details by ID"""
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify({
+            "id": str(user["_id"]),
+            "name": user.get("name", "Unknown User"),
+            "email": user.get("email", "")
+        })
+    except Exception as e:
+        logger.error(f"Error fetching user: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/task/<task_id>/comment", methods=["POST"])
 @login_required
@@ -1060,16 +1631,30 @@ def edit_task(task_id):
         logger.error(f"Error in edit_task route: {e}")
         return "Error editing task", 500
 
+
 @app.route("/api/notifications")
 @login_required
 def get_notifications():
     try:
-        notifications = list(notifications_collection.find({"user_id": ObjectId(current_user.id), "read": False}).sort("timestamp", -1))
+        # Get all notifications for the current user (both read and unread)
+        notifications = list(mongo.db.notifications.find({"user_id": current_user.id}).sort("created_at", -1))
+        
+        result = []
         for notification in notifications:
-            notification["_id"] = str(notification["_id"])
-            notification["user_id"] = str(notification["user_id"])
-            notification["timestamp"] = notification["timestamp"].isoformat()
-        return jsonify(notifications)
+            notif_dict = {
+                "_id": str(notification["_id"]),
+                "user_id": notification.get("user_id"),
+                "type": notification.get("type", ""),
+                "message": notification.get("message", ""),
+                "read": notification.get("read", False),
+                "created_at": notification.get("created_at").isoformat() if notification.get("created_at") else "",
+                "project_id": notification.get("project_id", ""),
+                "task_id": notification.get("task_id", "")
+            }
+            result.append(notif_dict)
+        
+        logger.info(f"Fetched {len(result)} notifications for user {current_user.id}")
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error fetching notifications for user {current_user.id}: {e}")
         return jsonify({"error": "Error fetching notifications"}), 500
@@ -1078,10 +1663,11 @@ def get_notifications():
 @login_required
 def mark_notification_read(notification_id):
     try:
-        notifications_collection.update_one(
-            {"_id": ObjectId(notification_id), "user_id": ObjectId(current_user.id)},
+        mongo.db.notifications.update_one(
+            {"_id": ObjectId(notification_id), "user_id": current_user.id},
             {"$set": {"read": True}}
         )
+        logger.info(f"Notification {notification_id} marked as read by user {current_user.id}")
         return jsonify({"success": True, "message": "Notification marked as read"})
     except Exception as e:
         logger.error(f"Error marking notification {notification_id} as read: {e}")
