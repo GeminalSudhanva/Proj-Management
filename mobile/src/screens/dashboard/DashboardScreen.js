@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    ActivityIndicator,
     RefreshControl,
     TouchableOpacity,
     Dimensions,
@@ -16,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import GradientHeader from '../../components/common/GradientHeader';
 import GradientCard from '../../components/common/GradientCard';
 import Avatar from '../../components/common/Avatar';
+import { DashboardSkeleton } from '../../components/common/Skeleton';
 import api from '../../services/api';
 import * as projectService from '../../services/projectService';
 
@@ -82,11 +82,7 @@ const DashboardScreen = ({ navigation }) => {
     );
 
     if (loading) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-        );
+        return <DashboardSkeleton />;
     }
 
     return (

@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    ActivityIndicator,
     TouchableOpacity,
     Alert,
 } from 'react-native';
@@ -12,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import TaskCard from '../../components/TaskCard';
+import { ProjectDetailsSkeleton } from '../../components/common/Skeleton';
 import * as projectService from '../../services/projectService';
 
 const ProjectDetailsScreen = ({ route, navigation }) => {
@@ -103,11 +103,7 @@ const ProjectDetailsScreen = ({ route, navigation }) => {
     });
 
     if (loading) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-        );
+        return <ProjectDetailsSkeleton />;
     }
 
     if (!project) {

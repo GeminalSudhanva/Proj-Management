@@ -6,12 +6,12 @@ import {
     FlatList,
     RefreshControl,
     TouchableOpacity,
-    ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import ProjectCard from '../../components/ProjectCard';
+import { ProjectsListSkeleton } from '../../components/common/Skeleton';
 import * as projectService from '../../services/projectService';
 
 const ProjectsListScreen = ({ navigation }) => {
@@ -60,8 +60,11 @@ const ProjectsListScreen = ({ navigation }) => {
 
     if (loading) {
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
+            <View style={styles.container}>
+                <ProjectsListSkeleton />
+                <TouchableOpacity style={styles.fab} onPress={handleCreateProject}>
+                    <Ionicons name="add" size={28} color="#fff" />
+                </TouchableOpacity>
             </View>
         );
     }
