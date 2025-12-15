@@ -1,7 +1,7 @@
 // API Configuration
 // Update this to your backend URL when deployed
-export const API_BASE_URL = 'http://192.168.1.25:5000';
-export const SOCKET_URL = 'http://192.168.1.25:5000';
+export const API_BASE_URL = 'http://192.168.1.20:5000';
+export const SOCKET_URL = 'http://192.168.1.20:5000';
 
 // For testing on physical device, use your computer's IP address
 // NOTE: Currently using your computer's IP address for physical device testing
