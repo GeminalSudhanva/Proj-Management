@@ -1,6 +1,12 @@
 # ProjectMngmt - Professional Project Management Platform
 
-A modern, collaborative project management platform built with Flask, MongoDB, and Bootstrap. Perfect for teams to manage projects, assign tasks, and track progress.
+A modern, collaborative project management platform with both **Web** and **Mobile** applications. Built with Flask, MongoDB, React Native, and Bootstrap. Perfect for teams to manage projects, assign tasks, and track progress from anywhere.
+
+## 📱 Platform Support
+
+This repository contains both:
+- **Web Application**: Flask-based web platform (main directory)
+- **Mobile Application**: React Native mobile app (`mobile/` directory)
 
 ## 🌟 Features
 
@@ -90,6 +96,27 @@ MONGO_URI=your-mongodb-connection-string
 python run.py
 ```
 
+### Mobile App Development
+```bash
+# Navigate to mobile directory
+cd mobile
+
+# Install dependencies
+npm install
+
+# Start Expo development server
+npx expo start
+
+# Run on Android
+npx expo start --android
+
+# Run on iOS (Mac only)
+npx expo start --ios
+```
+
+For detailed mobile app setup, see [`mobile/README.md`](mobile/README.md) and [`mobile/QUICK_START.md`](mobile/QUICK_START.md).
+
+
 ## 🔧 Environment Variables
 
 Create a `.env` file in your project root:
@@ -154,12 +181,22 @@ After deployment, share your application URL:
 
 ## 🛠️ Technical Stack
 
+### Web Application
 - **Backend**: Flask (Python)
 - **Database**: MongoDB
 - **Frontend**: Bootstrap 5, HTML5, CSS3, JavaScript
 - **Authentication**: Flask-Login
 - **Icons**: Font Awesome
 - **Styling**: Custom CSS with modern gradients
+
+### Mobile Application
+- **Framework**: React Native with Expo
+- **Navigation**: React Navigation
+- **State Management**: React Context API
+- **UI Components**: Custom components with gradient designs
+- **API Integration**: Axios for backend communication
+- **Authentication**: Session-based with backend API
+
 
 ## 📞 Support
 
