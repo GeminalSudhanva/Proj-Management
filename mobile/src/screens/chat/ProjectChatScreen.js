@@ -37,7 +37,11 @@ const ProjectChatScreen = ({ route }) => {
                 if (prev.some(msg => msg._id === message._id)) {
                     return prev;
                 }
-                return [message, ...prev];
+                // Add message and sort by createdAt (newest first for inverted FlatList)
+                const newMessages = [message, ...prev];
+                return newMessages.sort((a, b) =>
+                    new Date(b.createdAt) - new Date(a.createdAt)
+                );
             });
         });
 
@@ -45,7 +49,11 @@ const ProjectChatScreen = ({ route }) => {
         socketService.getProjectMessages(projectId);
         socketService.onProjectMessagesHistory((history) => {
             console.log('Project message history received:', history.length);
-            setMessages(history.reverse());
+            // Sort by createdAt (newest first for inverted FlatList)
+            const sortedHistory = history.sort((a, b) =>
+                new Date(b.createdAt) - new Date(a.createdAt)
+            );
+            setMessages(sortedHistory);
         });
 
         // Listen for message deletions
@@ -124,10 +132,25 @@ const ProjectChatScreen = ({ route }) => {
                     )}
                 </View>
                 <Text style={styles.timestamp}>
-                    {new Date(item.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}
+                    {(() => {
+                        const msgDate = new Date(item.createdAt);
+                        const today = new Date();
+                        const isToday = msgDate.toDateString() === today.toDateString();
+
+                        if (isToday) {
+                            return msgDate.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        } else {
+                            return msgDate.toLocaleDateString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        }
+                    })()}
                 </Text>
             </View>
         );

@@ -15,17 +15,36 @@ export const login = async (email, password) => {
             },
         });
 
+        console.log('Auth Service - Login response:', response);
+        console.log('Auth Service - Login response.data:', response.data);
+        console.log('Auth Service - Login response.data type:', typeof response.data);
+
+        // Check if response.data is a string (HTML redirect) or object
+        if (typeof response.data === 'string') {
+            console.error('Login returned HTML instead of JSON');
+            throw new Error('Login failed - server returned HTML');
+        }
+
+        const userId = response.data.user_id || response.data.id || null;
+        console.log('Auth Service - Extracted user_id:', userId);
+
+        if (!userId) {
+            console.error('No user_id in login response:', response.data);
+            throw new Error('Login response missing user_id');
+        }
+
         // Flask sets session cookie automatically
-        // Return user data (Flask might redirect, so handle both cases)
+        // Return user data
         return {
             success: true,
-            user_id: response.data.user_id || 'user',
+            user_id: userId,
+            token: userId, // Use user_id as token for Bearer auth
             name: response.data.name || email.split('@')[0],
-            email: email,
+            email: response.data.email || email,
         };
     } catch (error) {
         console.error('Login error:', error);
-        throw new Error(error.response?.data?.message || 'Invalid email or password');
+        throw new Error(error.response?.data?.message || error.message || 'Invalid email or password');
     }
 };
 

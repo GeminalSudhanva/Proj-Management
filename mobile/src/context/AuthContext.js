@@ -42,21 +42,20 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await authService.login(email, password);
 
-            console.log('Login response:', response);
+            console.log('AuthContext - Login response:', response);
 
-            // Note: Adjust based on your actual API response structure
-            // The Flask app uses session-based auth, so we might need to adapt this
+            // Create user data with proper ID
             const userData = {
-                id: response.user_id || response.id || 'user',
+                id: response.user_id, // This is the MongoDB ObjectId string
                 name: response.name || email.split('@')[0],
                 email: response.email || email,
             };
 
-            console.log('Stored user data:', userData);
+            console.log('AuthContext - Stored user data:', userData);
 
-            // Store token if provided, otherwise use session cookie
-            if (response.token) {
-                await storeToken(response.token);
+            // Store the user_id as the token (used for Bearer auth)
+            if (response.token || response.user_id) {
+                await storeToken(response.token || response.user_id);
             }
 
             await storeUserData(userData);
