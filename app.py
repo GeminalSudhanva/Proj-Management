@@ -265,6 +265,29 @@ def load_user(user_id):
         logger.error(f"Error loading user: {e}")
         return None
 
+# Handle JWT/Bearer token authentication for mobile API requests
+@app.before_request
+def handle_api_authentication():
+    """Check for Authorization header and login user for API requests"""
+    # Skip if user is already logged in via session
+    if current_user.is_authenticated:
+        return
+    
+    # Check for Authorization header
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        try:
+            # The token is the user_id (from mobile app login)
+            user_id = token
+            user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+            if user_data:
+                user = User(user_data)
+                login_user(user)
+                logger.info(f"API auth: User {user.email} logged in via Bearer token")
+        except Exception as e:
+            logger.error(f"Error in API authentication: {e}")
+
 # Routes
 @app.route("/")
 def index():
