@@ -938,6 +938,12 @@ def delete_project(project_id):
             # Delete all invitations for this project
             mongo.db.invitations.delete_many({"project_id": project_id})
             
+            # Delete all chat messages for this project
+            mongo.db.chat_messages.delete_many({"room_id": project_id, "room_type": "team"})
+            
+            # Delete all notifications related to this project
+            mongo.db.notifications.delete_many({"project_id": project_id})
+            
             # Remove project from all users' joined_projects
             mongo.db.users.update_many(
                 {"joined_projects": project_id},
