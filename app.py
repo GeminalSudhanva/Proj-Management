@@ -1752,6 +1752,29 @@ def api_delete_task(task_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# API endpoint to get user profile data
+@app.route("/api/profile")
+@login_required
+def api_get_profile():
+    """Get current user's profile data"""
+    try:
+        user_data = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+        
+        if not user_data:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "user": {
+                "id": str(user_data["_id"]),
+                "name": user_data.get("name", ""),
+                "email": user_data.get("email", ""),
+                "profile_picture": user_data.get("profile_picture", "")
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error fetching profile: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # API endpoint to upload profile picture
 @app.route("/api/profile/upload-picture", methods=["POST"])

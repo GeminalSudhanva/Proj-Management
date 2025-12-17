@@ -30,11 +30,40 @@ export const AuthProvider = ({ children }) => {
             if (token && userData) {
                 setUser(userData);
                 setIsAuthenticated(true);
+
+                // Refresh user data from server to get latest profile_picture
+                refreshUserFromServer(userData);
             }
         } catch (error) {
             console.error('Error checking auth:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Refresh user data from server (for profile picture sync)
+    const refreshUserFromServer = async (currentUserData) => {
+        try {
+            const api = require('../services/api').default;
+            const response = await api.get('/api/profile');
+
+            if (response.data.success && response.data.user) {
+                const freshUserData = {
+                    id: currentUserData.id,
+                    name: response.data.user.name,
+                    email: response.data.user.email,
+                    profile_picture: response.data.user.profile_picture || null,
+                };
+
+                // Only update if profile_picture is different
+                if (freshUserData.profile_picture !== currentUserData.profile_picture) {
+                    await storeUserData(freshUserData);
+                    setUser(freshUserData);
+                    console.log('AuthContext - User data refreshed from server');
+                }
+            }
+        } catch (error) {
+            console.log('Could not refresh user data from server:', error.message);
         }
     };
 
