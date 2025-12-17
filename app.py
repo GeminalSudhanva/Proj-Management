@@ -905,6 +905,7 @@ def get_project_api(project_id):
             "deadline": project.get("deadline", ""),
             "created_by": project.get("created_by", ""),
             "team_members": project.get("team_members", []),
+            "mentors": project.get("mentors", []),  # Include mentors array
             "created_at": str(project.get("created_at", "")),
             "completion_percentage": round(completion_percentage, 2),
             "total_tasks": total_tasks,
@@ -934,6 +935,7 @@ def create_project():
             "deadline": deadline,
             "created_by": current_user.id,
             "team_members": [current_user.id],
+            "mentors": [],  # Array of mentor user IDs
             "tasks": []
         }
         
@@ -1007,9 +1009,12 @@ def delete_project(project_id):
             flash("Project not found.")
             return redirect(url_for("dashboard"))
         
-        # Check if user is the project creator (leader)
-        if project["created_by"] != current_user.id:
-            flash("Only the project creator can delete this project.")
+        # Check if user is the project creator (leader) OR a mentor
+        is_creator = project["created_by"] == current_user.id
+        is_mentor = current_user.id in project.get("mentors", [])
+        
+        if not (is_creator or is_mentor):
+            flash("Only the project creator or a mentor can delete this project.")
             return redirect(url_for("view_project", project_id=project_id))
         
         if request.method == "POST":
@@ -1187,6 +1192,177 @@ def api_invite_member(project_id):
         })
     except Exception as e:
         logger.error(f"Error in api_invite_member route: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ============== MENTOR API ENDPOINTS ==============
+
+@app.route("/api/mentor/request/<project_id>", methods=["POST"])
+@login_required
+def api_request_mentor(project_id):
+    """Send a mentor request to a user (by email)"""
+    try:
+        project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
+        
+        if not project:
+            return jsonify({"success": False, "error": "Project not found"}), 404
+        
+        # Only project creator can invite mentors
+        if project["created_by"] != current_user.id:
+            return jsonify({"success": False, "error": "Only the project creator can invite mentors"}), 403
+        
+        # Get email from form data or JSON
+        email = request.form.get("email") or request.json.get("email")
+        
+        if not email:
+            return jsonify({"success": False, "error": "Email is required"}), 400
+        
+        # Find user by email
+        mentor_user = mongo.db.users.find_one({"email": email})
+        
+        if not mentor_user:
+            return jsonify({"success": False, "error": "User with this email not found"}), 404
+        
+        mentor_user_id = str(mentor_user["_id"])
+        
+        # Check if user is already a mentor
+        if mentor_user_id in project.get("mentors", []):
+            return jsonify({"success": False, "error": "User is already a mentor for this project"}), 400
+        
+        # Check if user is the project creator
+        if mentor_user_id == project["created_by"]:
+            return jsonify({"success": False, "error": "Project creator cannot be a mentor"}), 400
+        
+        # Check if there's already a pending mentor request for this user
+        existing_request = mongo.db.invitations.find_one({
+            "project_id": project_id,
+            "invited_user": mentor_user_id,
+            "type": "mentor_request",
+            "status": "pending"
+        })
+        
+        if existing_request:
+            return jsonify({"success": False, "error": "A mentor request is already pending for this user"}), 400
+        
+        # Create mentor request invitation
+        mentor_request = {
+            "project_id": project_id,
+            "project_title": project["title"],
+            "invited_by": current_user.id,
+            "invited_by_name": current_user.name,
+            "invited_user": mentor_user_id,
+            "type": "mentor_request",  # Distinguishes from regular invitations
+            "status": "pending",
+            "created_at": datetime.utcnow()
+        }
+        mongo.db.invitations.insert_one(mentor_request)
+        
+        # Create notification for the mentor
+        notification = {
+            "user_id": mentor_user_id,
+            "type": "mentor_request",
+            "message": f"You have been invited to be a mentor for the project '{project['title']}' by {current_user.name}",
+            "project_id": project_id,
+            "project_title": project["title"],
+            "invited_by": current_user.id,
+            "invited_by_name": current_user.name,
+            "read": False,
+            "created_at": datetime.utcnow()
+        }
+        mongo.db.notifications.insert_one(notification)
+        
+        logger.info(f"Mentor request sent to {mentor_user['name']} for project {project['title']} by {current_user.name}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Mentor request sent to {mentor_user['name']}!"
+        })
+    except Exception as e:
+        logger.error(f"Error in api_request_mentor route: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/mentor/respond/<request_id>", methods=["POST"])
+@login_required
+def api_respond_mentor_request(request_id):
+    """Accept or decline a mentor request"""
+    try:
+        mentor_request = mongo.db.invitations.find_one({
+            "_id": ObjectId(request_id),
+            "type": "mentor_request"
+        })
+        
+        if not mentor_request:
+            return jsonify({"success": False, "error": "Mentor request not found"}), 404
+        
+        # Verify the request is for the current user
+        if mentor_request["invited_user"] != current_user.id:
+            return jsonify({"success": False, "error": "Unauthorized"}), 403
+        
+        action = request.json.get("action")  # 'accept' or 'decline'
+        
+        if action == "accept":
+            # Add user to project mentors array
+            mongo.db.projects.update_one(
+                {"_id": ObjectId(mentor_request["project_id"])},
+                {"$addToSet": {"mentors": current_user.id}}
+            )
+            
+            # Update request status
+            mongo.db.invitations.update_one(
+                {"_id": ObjectId(request_id)},
+                {"$set": {"status": "accepted"}}
+            )
+            
+            # Notify project creator
+            project = mongo.db.projects.find_one({"_id": ObjectId(mentor_request["project_id"])})
+            if project:
+                notification = {
+                    "user_id": project["created_by"],
+                    "type": "mentor_accepted",
+                    "message": f"{current_user.name} has accepted to be a mentor for '{project['title']}'",
+                    "project_id": mentor_request["project_id"],
+                    "project_title": project["title"],
+                    "read": False,
+                    "created_at": datetime.utcnow()
+                }
+                mongo.db.notifications.insert_one(notification)
+            
+            logger.info(f"User {current_user.name} accepted mentor request for project {mentor_request['project_id']}")
+            return jsonify({"success": True, "message": "You are now a mentor for this project"})
+        
+        elif action == "decline":
+            # Update request status
+            mongo.db.invitations.update_one(
+                {"_id": ObjectId(request_id)},
+                {"$set": {"status": "declined"}}
+            )
+            
+            logger.info(f"User {current_user.name} declined mentor request for project {mentor_request['project_id']}")
+            return jsonify({"success": True, "message": "Mentor request declined"})
+        else:
+            return jsonify({"success": False, "error": "Invalid action"}), 400
+        
+    except Exception as e:
+        logger.error(f"Error responding to mentor request: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/mentor/requests")
+@login_required
+def api_get_mentor_requests():
+    """Get all pending mentor requests for the current user"""
+    try:
+        mentor_requests = list(mongo.db.invitations.find({
+            "invited_user": current_user.id,
+            "type": "mentor_request",
+            "status": "pending"
+        }))
+        
+        # Convert ObjectId to string
+        for req in mentor_requests:
+            req["_id"] = str(req["_id"])
+        
+        return jsonify({"success": True, "mentor_requests": mentor_requests})
+    except Exception as e:
+        logger.error(f"Error fetching mentor requests: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 # API endpoint to get invitations for current user

@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import TaskCard from '../../components/TaskCard';
 import { ProjectDetailsSkeleton } from '../../components/common/Skeleton';
 import * as projectService from '../../services/projectService';
+import * as mentorService from '../../services/mentorService';
 
 const ProjectDetailsScreen = ({ route, navigation }) => {
     const { projectId } = route.params;
@@ -92,6 +93,8 @@ const ProjectDetailsScreen = ({ route, navigation }) => {
     };
 
     const isCreator = project && project.created_by === user?.id;
+    const isMentor = project && (project.mentors || []).includes(user?.id);
+    const canDelete = isCreator || isMentor;
 
     // Debug logging
     console.log('Project Details Debug:', {
@@ -171,13 +174,37 @@ const ProjectDetailsScreen = ({ route, navigation }) => {
                             <Text style={styles.actionButtonText}>Invite Member</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.actionButton, styles.deleteButton]}
-                            onPress={handleDeleteProject}
+                            style={[styles.actionButton, styles.mentorButton]}
+                            onPress={() => navigation.navigate('InviteMentor', {
+                                projectId,
+                                projectTitle: project.title
+                            })}
                         >
-                            <Ionicons name="trash-outline" size={20} color={theme.colors.danger} />
-                            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete Project</Text>
+                            <Ionicons name="school-outline" size={20} color={theme.colors.secondary} />
+                            <Text style={[styles.actionButtonText, { color: theme.colors.secondary }]}>Invite Mentor</Text>
                         </TouchableOpacity>
                     </View>
+                )}
+
+                {/* Mentor info */}
+                {project.mentors && project.mentors.length > 0 && (
+                    <View style={styles.mentorInfo}>
+                        <Ionicons name="school" size={16} color={theme.colors.secondary} />
+                        <Text style={styles.mentorInfoText}>
+                            {project.mentors.length} Mentor{project.mentors.length > 1 ? 's' : ''}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Delete button - visible to creator and mentors */}
+                {canDelete && (
+                    <TouchableOpacity
+                        style={[styles.actionButton, styles.deleteButton, { marginTop: theme.spacing.sm }]}
+                        onPress={handleDeleteProject}
+                    >
+                        <Ionicons name="trash-outline" size={20} color={theme.colors.danger} />
+                        <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete Project</Text>
+                    </TouchableOpacity>
                 )}
 
                 {/* Team Chat Button - visible to all team members */}
@@ -423,6 +450,21 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 8,
+    },
+    mentorButton: {
+        borderColor: theme.colors.secondary,
+    },
+    mentorInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: theme.spacing.sm,
+        paddingVertical: theme.spacing.xs,
+    },
+    mentorInfoText: {
+        marginLeft: theme.spacing.xs,
+        fontSize: 14,
+        color: theme.colors.secondary,
+        fontWeight: '500',
     },
 });
 

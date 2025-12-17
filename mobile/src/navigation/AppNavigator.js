@@ -12,6 +12,7 @@ import ProjectsListScreen from '../screens/projects/ProjectsListScreen';
 import CreateProjectScreen from '../screens/projects/CreateProjectScreen';
 import ProjectDetailsScreen from '../screens/projects/ProjectDetailsScreen';
 import InviteMemberScreen from '../screens/projects/InviteMemberScreen';
+import InviteMentorScreen from '../screens/projects/InviteMentorScreen';
 import CreateTaskScreen from '../screens/tasks/CreateTaskScreen';
 
 // Chat
@@ -58,6 +59,11 @@ const ProjectsStack = () => {
                 name="InviteMember"
                 component={InviteMemberScreen}
                 options={{ title: 'Invite Member' }}
+            />
+            <Stack.Screen
+                name="InviteMentor"
+                component={InviteMentorScreen}
+                options={{ title: 'Invite Mentor' }}
             />
             <Stack.Screen
                 name="ProjectChat"

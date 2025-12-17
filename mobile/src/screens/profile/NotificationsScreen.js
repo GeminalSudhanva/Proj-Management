@@ -7,38 +7,45 @@ import {
     FlatList,
     ActivityIndicator,
     RefreshControl,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import * as mentorService from '../../services/mentorService';
 
 const NotificationsScreen = ({ navigation }) => {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState('notifications'); // 'notifications' or 'mentorRequests'
     const [notifications, setNotifications] = useState([]);
+    const [mentorRequests, setMentorRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
-        fetchNotifications();
+        fetchData();
     }, []);
 
-    const fetchNotifications = async () => {
+    const fetchData = async () => {
         try {
-            console.log('Fetching notifications...');
-            const response = await api.get('/api/notifications');
-            console.log('Notifications response:', response);
-            console.log('Notifications data:', response.data);
+            // Fetch notifications
+            const notifResponse = await api.get('/api/notifications');
+            if (notifResponse.data && Array.isArray(notifResponse.data)) {
+                // Filter out mentor_request notifications (they're shown in Mentor Requests tab)
+                const filteredNotifications = notifResponse.data.filter(
+                    n => n.type !== 'mentor_request'
+                );
+                setNotifications(filteredNotifications);
+            }
 
-            if (response.data && Array.isArray(response.data)) {
-                console.log('Setting notifications:', response.data.length, 'items');
-                setNotifications(response.data);
-            } else {
-                console.log('Invalid response format:', response.data);
+            // Fetch mentor requests
+            const mentorResponse = await mentorService.getMentorRequests();
+            if (mentorResponse.success && mentorResponse.mentor_requests) {
+                setMentorRequests(mentorResponse.mentor_requests);
             }
         } catch (error) {
-            console.error('Error fetching notifications:', error);
-            console.error('Error response:', error.response);
+            console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -47,21 +54,19 @@ const NotificationsScreen = ({ navigation }) => {
 
     const onRefresh = () => {
         setRefreshing(true);
-        fetchNotifications();
+        fetchData();
     };
 
     const handleNotificationPress = async (notification) => {
         try {
-            // Mark as read
             if (!notification.read) {
                 await api.post(`/api/notifications/mark_read/${notification._id}`);
-                fetchNotifications(); // Refresh list
+                fetchData();
             }
 
-            // Navigate based on notification type
             if (notification.type === 'project_invitation') {
                 navigation.navigate('Profile', { screen: 'Invitations' });
-            } else if (notification.type === 'task_assigned' || notification.type === 'task_completed') {
+            } else if (notification.type === 'task_assigned' || notification.type === 'task_completed' || notification.type === 'mentor_accepted') {
                 navigation.navigate('Projects', {
                     screen: 'ProjectDetails',
                     params: { projectId: notification.project_id }
@@ -72,6 +77,30 @@ const NotificationsScreen = ({ navigation }) => {
         }
     };
 
+    const handleMentorRequestAction = async (requestId, action) => {
+        const actionText = action === 'accept' ? 'Accept' : 'Decline';
+        Alert.alert(
+            `${actionText} Mentor Request`,
+            `Are you sure you want to ${action} this mentor request?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: actionText,
+                    style: action === 'decline' ? 'destructive' : 'default',
+                    onPress: async () => {
+                        const result = await mentorService.respondToMentorRequest(requestId, action);
+                        if (result.success) {
+                            Alert.alert('Success', result.message);
+                            fetchData();
+                        } else {
+                            Alert.alert('Error', result.error || 'Failed to process request');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const getNotificationIcon = (type) => {
         switch (type) {
             case 'project_invitation':
@@ -80,6 +109,8 @@ const NotificationsScreen = ({ navigation }) => {
                 return 'checkbox';
             case 'task_completed':
                 return 'checkmark-circle';
+            case 'mentor_accepted':
+                return 'school';
             default:
                 return 'notifications';
         }
@@ -93,6 +124,8 @@ const NotificationsScreen = ({ navigation }) => {
                 return theme.colors.warning;
             case 'task_completed':
                 return theme.colors.success;
+            case 'mentor_accepted':
+                return theme.colors.secondary;
             default:
                 return theme.colors.textSecondary;
         }
@@ -135,6 +168,40 @@ const NotificationsScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
+    const renderMentorRequest = ({ item }) => (
+        <View style={styles.mentorRequestCard}>
+            <View style={styles.mentorRequestHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.colors.secondary + '20' }]}>
+                    <Ionicons name="school" size={24} color={theme.colors.secondary} />
+                </View>
+                <View style={styles.mentorRequestContent}>
+                    <Text style={styles.mentorRequestTitle}>Mentor Request</Text>
+                    <Text style={styles.mentorRequestProject}>{item.project_title}</Text>
+                    <Text style={styles.mentorRequestFrom}>From: {item.invited_by_name}</Text>
+                    <Text style={styles.notificationTime}>
+                        {new Date(item.created_at).toLocaleDateString()}
+                    </Text>
+                </View>
+            </View>
+            <View style={styles.mentorRequestActions}>
+                <TouchableOpacity
+                    style={[styles.actionButton, styles.acceptButton]}
+                    onPress={() => handleMentorRequestAction(item._id, 'accept')}
+                >
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.actionButton, styles.declineButton]}
+                    onPress={() => handleMentorRequestAction(item._id, 'decline')}
+                >
+                    <Ionicons name="close" size={18} color={theme.colors.danger} />
+                    <Text style={styles.declineButtonText}>Decline</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
     if (loading) {
         return (
             <View style={styles.centered}>
@@ -145,28 +212,82 @@ const NotificationsScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <FlatList
-                data={notifications}
-                keyExtractor={(item) => item._id}
-                renderItem={renderNotification}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons
-                            name="notifications-off-outline"
-                            size={64}
-                            color={theme.colors.textSecondary}
-                        />
-                        <Text style={styles.emptyText}>No notifications</Text>
-                        <Text style={styles.emptySubtext}>
-                            You're all caught up!
-                        </Text>
-                    </View>
-                }
-            />
+            {/* Tab Bar */}
+            <View style={styles.tabBar}>
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === 'notifications' && styles.activeTab]}
+                    onPress={() => setActiveTab('notifications')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'notifications' && styles.activeTabText]}>
+                        Notifications
+                    </Text>
+                    {notifications.filter(n => !n.read).length > 0 && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{notifications.filter(n => !n.read).length}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === 'mentorRequests' && styles.activeTab]}
+                    onPress={() => setActiveTab('mentorRequests')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'mentorRequests' && styles.activeTabText]}>
+                        Mentor Requests
+                    </Text>
+                    {mentorRequests.length > 0 && (
+                        <View style={[styles.badge, { backgroundColor: theme.colors.secondary }]}>
+                            <Text style={styles.badgeText}>{mentorRequests.length}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            {activeTab === 'notifications' ? (
+                <FlatList
+                    data={notifications}
+                    keyExtractor={(item) => item._id}
+                    renderItem={renderNotification}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons
+                                name="notifications-off-outline"
+                                size={64}
+                                color={theme.colors.textSecondary}
+                            />
+                            <Text style={styles.emptyText}>No notifications</Text>
+                            <Text style={styles.emptySubtext}>You're all caught up!</Text>
+                        </View>
+                    }
+                />
+            ) : (
+                <FlatList
+                    data={mentorRequests}
+                    keyExtractor={(item) => item._id}
+                    renderItem={renderMentorRequest}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons
+                                name="school-outline"
+                                size={64}
+                                color={theme.colors.textSecondary}
+                            />
+                            <Text style={styles.emptyText}>No mentor requests</Text>
+                            <Text style={styles.emptySubtext}>
+                                You'll see mentor invitations here
+                            </Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
     );
 };
@@ -181,6 +302,48 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: theme.colors.background,
+    },
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: theme.colors.card,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+    },
+    tab: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.md,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    activeTab: {
+        borderBottomColor: theme.colors.primary,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.textSecondary,
+    },
+    activeTabText: {
+        color: theme.colors.primary,
+        fontWeight: '600',
+    },
+    badge: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: theme.spacing.xs,
+        paddingHorizontal: 6,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
     },
     listContent: {
         padding: theme.spacing.md,
@@ -226,6 +389,67 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         backgroundColor: theme.colors.primary,
         marginLeft: theme.spacing.sm,
+    },
+    mentorRequestCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+        borderLeftWidth: 4,
+        borderLeftColor: theme.colors.secondary,
+    },
+    mentorRequestHeader: {
+        flexDirection: 'row',
+        marginBottom: theme.spacing.md,
+    },
+    mentorRequestContent: {
+        flex: 1,
+    },
+    mentorRequestTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.text,
+        marginBottom: 4,
+    },
+    mentorRequestProject: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: theme.colors.primary,
+        marginBottom: 2,
+    },
+    mentorRequestFrom: {
+        fontSize: 13,
+        color: theme.colors.textSecondary,
+        marginBottom: 2,
+    },
+    mentorRequestActions: {
+        flexDirection: 'row',
+        gap: theme.spacing.sm,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.borderRadius.md,
+        gap: 4,
+    },
+    acceptButton: {
+        backgroundColor: theme.colors.success,
+    },
+    acceptButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+    },
+    declineButton: {
+        backgroundColor: theme.colors.danger + '20',
+        borderWidth: 1,
+        borderColor: theme.colors.danger,
+    },
+    declineButtonText: {
+        color: theme.colors.danger,
+        fontWeight: '600',
     },
     emptyContainer: {
         alignItems: 'center',

@@ -20,7 +20,24 @@ const ProjectChatScreen = ({ route }) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
+    const [mentors, setMentors] = useState([]);
     const flatListRef = useRef(null);
+
+    // Fetch project to get mentors list
+    useEffect(() => {
+        const fetchProject = async () => {
+            try {
+                const response = await fetch(`https://proj-management-mobile.onrender.com/api/project/${projectId}`);
+                const data = await response.json();
+                if (data.mentors) {
+                    setMentors(data.mentors);
+                }
+            } catch (error) {
+                console.log('Could not fetch project mentors:', error);
+            }
+        };
+        fetchProject();
+    }, [projectId]);
 
     useEffect(() => {
         // Connect to Socket.IO
@@ -101,6 +118,7 @@ const ProjectChatScreen = ({ route }) => {
 
     const renderMessage = ({ item }) => {
         const isMyMessage = item.user._id === (user?.id || 'user');
+        const isMentor = mentors.includes(item.user._id);
 
         return (
             <View style={[
@@ -108,7 +126,14 @@ const ProjectChatScreen = ({ route }) => {
                 isMyMessage ? styles.myMessage : styles.otherMessage
             ]}>
                 {!isMyMessage && (
-                    <Text style={styles.senderName}>{item.user.name}</Text>
+                    <View style={styles.senderRow}>
+                        <Text style={styles.senderName}>{item.user.name}</Text>
+                        {isMentor && (
+                            <View style={styles.mentorBadge}>
+                                <Text style={styles.mentorBadgeText}>Mentor</Text>
+                            </View>
+                        )}
+                    </View>
                 )}
                 <View style={styles.messageRow}>
                     <View style={[
@@ -330,6 +355,24 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.textSecondary,
         marginTop: theme.spacing.xs,
+    },
+    senderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        marginLeft: theme.spacing.sm,
+    },
+    mentorBadge: {
+        backgroundColor: theme.colors.secondary,
+        borderRadius: theme.borderRadius.sm,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginLeft: theme.spacing.xs,
+    },
+    mentorBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '600',
     },
 });
 
