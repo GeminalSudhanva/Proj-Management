@@ -671,6 +671,101 @@ def get_projects_api():
         logger.error(f"Error in get_projects_api route: {e}")
         return jsonify({"error": "Failed to fetch projects"}), 500
 
+@app.route("/api/search")
+@login_required
+def api_search():
+    """Search across projects and tasks for the current user"""
+    try:
+        query = request.args.get('q', '').strip()
+        
+        if not query or len(query) < 2:
+            return jsonify({'success': True, 'projects': [], 'tasks': []})
+        
+        user_id = current_user.id
+        
+        # Create regex pattern for case-insensitive search
+        regex_pattern = {'$regex': query, '$options': 'i'}
+        
+        # Search projects where user is a member or creator
+        projects = list(mongo.db.projects.find({
+            '$and': [
+                {'$or': [
+                    {'created_by': user_id},
+                    {'team_members': user_id}
+                ]},
+                {'$or': [
+                    {'title': regex_pattern},
+                    {'description': regex_pattern},
+                    {'course': regex_pattern}
+                ]}
+            ]
+        }))
+        
+        # Get project IDs for task search
+        user_project_ids = [str(p['_id']) for p in mongo.db.projects.find({
+            '$or': [
+                {'created_by': user_id},
+                {'team_members': user_id}
+            ]
+        })]
+        
+        # Search tasks in user's projects
+        tasks = list(mongo.db.tasks.find({
+            '$and': [
+                {'project_id': {'$in': user_project_ids}},
+                {'$or': [
+                    {'title': regex_pattern},
+                    {'description': regex_pattern}
+                ]}
+            ]
+        }))
+        
+        # Format projects for JSON response
+        projects_data = []
+        for project in projects:
+            project_tasks = list(mongo.db.tasks.find({"project_id": str(project["_id"])}))
+            total_tasks = len(project_tasks)
+            completed_tasks = len([t for t in project_tasks if t["status"] == "Done"])
+            completion_percentage = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            
+            projects_data.append({
+                '_id': str(project['_id']),
+                'title': project.get('title', ''),
+                'description': project.get('description', ''),
+                'course': project.get('course', ''),
+                'deadline': project.get('deadline', ''),
+                'completion_percentage': round(completion_percentage, 2),
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks
+            })
+        
+        # Format tasks for JSON response
+        tasks_data = []
+        for task in tasks:
+            # Get project title for context
+            project = mongo.db.projects.find_one({'_id': ObjectId(task['project_id'])})
+            project_title = project.get('title', 'Unknown Project') if project else 'Unknown Project'
+            
+            tasks_data.append({
+                '_id': str(task['_id']),
+                'title': task.get('title', ''),
+                'description': task.get('description', ''),
+                'status': task.get('status', 'To-do'),
+                'due_date': task.get('due_date', ''),
+                'project_id': task.get('project_id', ''),
+                'project_title': project_title
+            })
+        
+        return jsonify({
+            'success': True,
+            'projects': projects_data,
+            'tasks': tasks_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in api_search route: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route("/api/dashboard/stats")
 @login_required
 def get_dashboard_stats():
