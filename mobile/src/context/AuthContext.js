@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }) => {
                 id: response.user_id, // This is the MongoDB ObjectId string
                 name: response.name || email.split('@')[0],
                 email: response.email || email,
+                profile_picture: response.profile_picture || null,
             };
 
             console.log('AuthContext - Stored user data:', userData);

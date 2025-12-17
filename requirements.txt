@@ -17,3 +17,4 @@ gunicorn
 APScheduler==3.10.4
 certifi
 dnspython
+flask-limiter

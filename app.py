@@ -11,6 +11,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +26,15 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Configure CORS to support credentials (session cookies) for mobile app
 CORS(app, supports_credentials=True, origins=["*"], allow_headers=["Content-Type", "Authorization"])
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "default-secret-key")
+
+# Rate Limiting Configuration - Protect against brute force attacks
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+logger.info("Rate limiting enabled - protecting against brute force attacks")
 
 # Flask-Mail Configuration
 app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER")
@@ -336,6 +347,7 @@ def test_mongo():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("3 per minute")  # Prevent registration spam
 def register():
     try:
         if request.method == "POST":
@@ -386,6 +398,7 @@ def register():
         return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")  # Prevent brute force attacks
 def login():
     try:
         if request.method == "POST":
@@ -415,7 +428,8 @@ def login():
                         'success': True,
                         'user_id': str(user_data['_id']),
                         'name': user_data.get('name', ''),
-                        'email': user_data.get('email', '')
+                        'email': user_data.get('email', ''),
+                        'profile_picture': user_data.get('profile_picture', '')
                     })
                 
                 flash("Login successful!")
@@ -432,6 +446,7 @@ def login():
         return render_template("login.html")
 
 @app.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("3 per minute")  # Prevent password reset abuse
 def forgot_password():
     if request.method == "POST":
         email = request.form.get("email")
