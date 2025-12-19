@@ -41,6 +41,7 @@ export const login = async (email, password) => {
             token: userId, // Use user_id as token for Bearer auth
             name: response.data.name || email.split('@')[0],
             email: response.data.email || email,
+            profile_picture: response.data.profile_picture || null,
         };
     } catch (error) {
         console.error('Login error:', error);
