@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: '/forgot-password',
     RESET_PASSWORD: '/reset-password',
     CHANGE_PASSWORD: '/change-password',
+    DELETE_ACCOUNT: '/api/delete-account',
 
     // Profile
     EDIT_PROFILE: '/profile/edit',

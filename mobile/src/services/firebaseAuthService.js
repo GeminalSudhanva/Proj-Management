@@ -133,6 +133,25 @@ const handleAuthError = (error) => {
     return customError;
 };
 
+/**
+ * Delete the current user's account
+ * This should be called after the backend has deleted the user data
+ */
+export const deleteAccount = async () => {
+    try {
+        const user = auth.currentUser;
+        if (user) {
+            await user.delete();
+        }
+    } catch (error) {
+        // If token expired, user needs to re-authenticate
+        if (error.code === 'auth/requires-recent-login') {
+            throw new Error('Please log out and log in again before deleting your account.');
+        }
+        throw handleAuthError(error);
+    }
+};
+
 export default {
     signIn,
     signUp,
@@ -141,4 +160,5 @@ export default {
     getIdToken,
     getCurrentUser,
     onAuthStateChanged,
+    deleteAccount,
 };

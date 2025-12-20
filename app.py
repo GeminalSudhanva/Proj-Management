@@ -605,6 +605,93 @@ def change_password():
     
     return render_template("change_password.html")
 
+@app.route("/api/delete-account", methods=["POST", "DELETE"])
+@login_required
+def delete_account():
+    """Delete user account from Firebase and MongoDB, remove from all projects."""
+    try:
+        user_id = current_user.id
+        user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        
+        if not user_data:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        
+        logger.info(f"Deleting account for user {user_id}")
+        
+        # 1. Delete Firebase user if linked
+        firebase_uid = user_data.get('firebase_uid')
+        if firebase_uid:
+            try:
+                from firebase_config import init_firebase
+                from firebase_admin import auth
+                init_firebase()
+                auth.delete_user(firebase_uid)
+                logger.info(f"Deleted Firebase user: {firebase_uid}")
+            except ImportError:
+                logger.warning("Firebase Admin SDK not available")
+            except Exception as e:
+                logger.warning(f"Could not delete Firebase user: {e}")
+        
+        # 2. Remove user from all projects they're a member of
+        mongo.db.projects.update_many(
+            {"team_members": user_id},
+            {"$pull": {"team_members": user_id}}
+        )
+        logger.info(f"Removed user from team memberships")
+        
+        # 3. Delete projects created by this user (or optionally transfer ownership)
+        # For now, we'll delete projects where user is the only member
+        user_created_projects = list(mongo.db.projects.find({"created_by": user_id}))
+        for project in user_created_projects:
+            project_id = str(project["_id"])
+            # If user is the only team member, delete the project and its tasks
+            if len(project.get("team_members", [])) <= 1:
+                mongo.db.tasks.delete_many({"project_id": project_id})
+                mongo.db.projects.delete_one({"_id": project["_id"]})
+                logger.info(f"Deleted project {project_id} (user was only member)")
+            else:
+                # Transfer ownership to another team member
+                other_members = [m for m in project.get("team_members", []) if m != user_id]
+                if other_members:
+                    mongo.db.projects.update_one(
+                        {"_id": project["_id"]},
+                        {"$set": {"created_by": other_members[0]}}
+                    )
+                    logger.info(f"Transferred ownership of project {project_id}")
+        
+        # 4. Unassign user from any tasks
+        mongo.db.tasks.update_many(
+            {"assigned_to": ObjectId(user_id)},
+            {"$set": {"assigned_to": None}}
+        )
+        
+        # 5. Delete user's notifications
+        mongo.db.notifications.delete_many({"user_id": ObjectId(user_id)})
+        
+        # 6. Delete user's chat messages (optional - could keep for history)
+        mongo.db.chat_messages.delete_many({"user_id": user_id})
+        
+        # 7. Delete the user document from MongoDB
+        mongo.db.users.delete_one({"_id": ObjectId(user_id)})
+        logger.info(f"Deleted user document from MongoDB")
+        
+        # 8. Logout the user
+        logout_user()
+        
+        # Return success for API (mobile app)
+        if request.content_type and ('application/json' in request.content_type or 'multipart/form-data' in request.content_type):
+            return jsonify({"success": True, "message": "Account deleted successfully"})
+        
+        flash("Your account has been deleted successfully.")
+        return redirect(url_for("index"))
+        
+    except Exception as e:
+        logger.error(f"Error deleting account: {e}")
+        if request.content_type and 'application/json' in request.content_type:
+            return jsonify({"success": False, "error": str(e)}), 500
+        flash(f"Error deleting account: {str(e)}")
+        return redirect(url_for("dashboard"))
+
 @app.route("/logout")
 @login_required
 def logout():

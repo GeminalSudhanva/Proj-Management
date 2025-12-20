@@ -134,6 +134,40 @@ export const AuthProvider = ({ children }) => {
         return await firebaseAuth.getIdToken();
     };
 
+    // Delete user account from backend and Firebase
+    const deleteAccount = async () => {
+        try {
+            // Import api here to avoid circular dependency
+            const api = require('../services/api').default;
+            const { API_ENDPOINTS } = require('../constants/config');
+
+            // 1. Call backend to delete all user data
+            const response = await api.delete(API_ENDPOINTS.DELETE_ACCOUNT);
+
+            if (response.data.success) {
+                // 2. Delete Firebase account
+                try {
+                    await firebaseAuth.deleteAccount();
+                } catch (firebaseError) {
+                    console.warn('Firebase account deletion failed:', firebaseError);
+                    // Continue anyway since backend data is deleted
+                }
+
+                // 3. Clear local storage
+                await removeUserData();
+                setUser(null);
+                setIsAuthenticated(false);
+
+                return { success: true, message: 'Account deleted successfully' };
+            } else {
+                return { success: false, error: response.data.error || 'Failed to delete account' };
+            }
+        } catch (error) {
+            console.error('Delete account error:', error);
+            return { success: false, error: error.message || 'Failed to delete account' };
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -144,6 +178,7 @@ export const AuthProvider = ({ children }) => {
         forgotPassword,
         updateUser,
         getAuthToken,
+        deleteAccount,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

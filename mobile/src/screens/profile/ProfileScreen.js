@@ -18,8 +18,9 @@ import Avatar from '../../components/common/Avatar';
 import api from '../../services/api';
 
 const ProfileScreen = ({ navigation }) => {
-    const { user, logout, updateUser } = useAuth();
+    const { user, logout, updateUser, deleteAccount } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [uploadingPicture, setUploadingPicture] = useState(false);
 
     const handleLogout = () => {
@@ -153,6 +154,43 @@ const ProfileScreen = ({ navigation }) => {
         }
     };
 
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            'Delete Account',
+            'Are you sure you want to delete your account? This action cannot be undone. All your data, projects you created (where you are the only member), and associated information will be permanently deleted.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete Account',
+                    style: 'destructive',
+                    onPress: () => {
+                        // Double confirmation
+                        Alert.alert(
+                            'Final Confirmation',
+                            'This is your last chance. Are you absolutely sure?',
+                            [
+                                { text: 'No, Keep Account', style: 'cancel' },
+                                {
+                                    text: 'Yes, Delete Forever',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        setDeleting(true);
+                                        const result = await deleteAccount();
+                                        setDeleting(false);
+                                        if (!result.success) {
+                                            Alert.alert('Error', result.error || 'Failed to delete account');
+                                        }
+                                        // If successful, AuthContext will handle navigation
+                                    },
+                                },
+                            ]
+                        );
+                    },
+                },
+            ]
+        );
+    };
+
     const menuItems = [
         {
             icon: 'person-outline',
@@ -168,6 +206,12 @@ const ProfileScreen = ({ navigation }) => {
             icon: 'mail-outline',
             title: 'Invitations',
             onPress: () => navigation.navigate('Invitations'),
+        },
+        {
+            icon: 'trash-outline',
+            title: 'Delete Account',
+            onPress: handleDeleteAccount,
+            danger: true,
         },
     ];
 
@@ -196,15 +240,20 @@ const ProfileScreen = ({ navigation }) => {
                 {menuItems.map((item, index) => (
                     <TouchableOpacity
                         key={`menu-${index}`}
-                        style={styles.menuItem}
+                        style={[styles.menuItem, item.danger && styles.menuItemDanger]}
                         onPress={item.onPress}
                         activeOpacity={0.7}
+                        disabled={deleting}
                     >
                         <View style={styles.menuItemLeft}>
-                            <Ionicons name={item.icon} size={24} color={theme.colors.text} />
-                            <Text style={styles.menuItemText}>{item.title}</Text>
+                            <Ionicons name={item.icon} size={24} color={item.danger ? theme.colors.error : theme.colors.text} />
+                            <Text style={[styles.menuItemText, item.danger && styles.menuItemTextDanger]}>{item.title}</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+                        {item.danger && deleting ? (
+                            <ActivityIndicator size="small" color={theme.colors.error} />
+                        ) : (
+                            <Ionicons name="chevron-forward" size={20} color={item.danger ? theme.colors.error : theme.colors.textSecondary} />
+                        )}
                     </TouchableOpacity>
                 ))}
             </View>
@@ -283,6 +332,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.text,
         marginLeft: theme.spacing.md,
+    },
+    menuItemDanger: {
+        backgroundColor: 'rgba(255, 59, 48, 0.05)',
+    },
+    menuItemTextDanger: {
+        color: theme.colors.error,
     },
     logoutContainer: {
         padding: theme.spacing.lg,

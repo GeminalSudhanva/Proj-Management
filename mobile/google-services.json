@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935100277148",
+    "project_id": "project-management-mobil-b5953",
+    "storage_bucket": "project-management-mobil-b5953.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935100277148:android:af74f85c60d3b1c982e859",
+        "android_client_info": {
+          "package_name": "com.geminal.projectmanagement"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRDk5QTapNyv6PvoVPEPDCCTnEsD_7ULM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
