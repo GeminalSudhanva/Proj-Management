@@ -96,6 +96,19 @@ export const getProjectProgress = async (projectId) => {
     }
 };
 
+export const leaveProject = async (projectId) => {
+    try {
+        const response = await api.post(API_ENDPOINTS.LEAVE_PROJECT(projectId));
+        return { success: true, data: response.data };
+    } catch (error) {
+        console.error('Leave project error:', error);
+        return {
+            success: false,
+            error: error.response?.data?.error || error.message || 'Failed to leave project'
+        };
+    }
+};
+
 export default {
     getProjects,
     getProjectDetails,
@@ -103,4 +116,5 @@ export default {
     deleteProject,
     inviteMember,
     getProjectProgress,
+    leaveProject,
 };

@@ -1331,6 +1331,71 @@ def delete_project(project_id):
         logger.error(f"Error in delete_project route: {e}")
         return "Error deleting project", 500
 
+@app.route("/api/project/<project_id>/leave", methods=["POST"])
+@login_required
+def leave_project(project_id):
+    """Allow a user to leave/quit a project they're a member of."""
+    try:
+        project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
+        
+        if not project:
+            return jsonify({"success": False, "error": "Project not found"}), 404
+        
+        user_id = current_user.id
+        
+        # Check if user is the creator
+        if project["created_by"] == user_id:
+            return jsonify({
+                "success": False, 
+                "error": "Project creator cannot leave. Transfer ownership or delete the project instead."
+            }), 400
+        
+        # Check if user is a team member
+        if user_id not in project.get("team_members", []):
+            return jsonify({"success": False, "error": "You are not a member of this project"}), 400
+        
+        # Remove user from team_members
+        mongo.db.projects.update_one(
+            {"_id": ObjectId(project_id)},
+            {"$pull": {"team_members": user_id}}
+        )
+        
+        # Remove user from mentors if they were a mentor
+        if user_id in project.get("mentors", []):
+            mongo.db.projects.update_one(
+                {"_id": ObjectId(project_id)},
+                {"$pull": {"mentors": user_id}}
+            )
+        
+        # Unassign user from any tasks in this project
+        mongo.db.tasks.update_many(
+            {"project_id": project_id, "assigned_to": ObjectId(user_id)},
+            {"$set": {"assigned_to": None}}
+        )
+        
+        # Remove project from user's joined_projects
+        mongo.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$pull": {"joined_projects": project_id}}
+        )
+        
+        # Delete any pending invitations from this user for this project
+        mongo.db.invitations.delete_many({
+            "project_id": project_id,
+            "invited_by": user_id
+        })
+        
+        logger.info(f"User {user_id} left project {project_id}")
+        
+        return jsonify({
+            "success": True, 
+            "message": "You have left the project successfully"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in leave_project: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/project/<project_id>/invite", methods=["GET", "POST"])
 @login_required
 def invite_member(project_id):

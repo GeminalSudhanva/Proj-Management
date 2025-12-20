@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     PROJECT_DETAILS: (id) => `/api/project/${id}`,
     CREATE_PROJECT: '/project/create',
     DELETE_PROJECT: (id) => `/project/${id}/delete`,
+    LEAVE_PROJECT: (id) => `/api/project/${id}/leave`,
     INVITE_MEMBER: (id) => `/api/invite/${id}`,
     PROJECT_PROGRESS: (id) => `/project/${id}/progress`,
 

@@ -92,9 +92,37 @@ const ProjectDetailsScreen = ({ route, navigation }) => {
         );
     };
 
+    const handleLeaveProject = () => {
+        Alert.alert(
+            'Leave Project',
+            'Are you sure you want to leave this project? You will be removed from the team and unassigned from all tasks.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Leave',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const result = await projectService.leaveProject(projectId);
+                        if (result.success) {
+                            Alert.alert('Success', 'You have left the project.', [
+                                {
+                                    text: 'OK',
+                                    onPress: () => navigation.navigate('ProjectsList'),
+                                },
+                            ]);
+                        } else {
+                            Alert.alert('Error', result.error || 'Failed to leave project');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const isCreator = project && project.created_by === user?.id;
     const isMentor = project && (project.mentors || []).includes(user?.id);
     const canDelete = isCreator || isMentor;
+    const canLeave = !isCreator; // Everyone except creator can leave
 
     // Debug logging
     console.log('Project Details Debug:', {
@@ -204,6 +232,17 @@ const ProjectDetailsScreen = ({ route, navigation }) => {
                     >
                         <Ionicons name="trash-outline" size={20} color={theme.colors.danger} />
                         <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete Project</Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Leave Project button - visible to non-creators */}
+                {canLeave && (
+                    <TouchableOpacity
+                        style={[styles.actionButton, styles.leaveButton, { marginTop: theme.spacing.sm }]}
+                        onPress={handleLeaveProject}
+                    >
+                        <Ionicons name="exit-outline" size={20} color={theme.colors.warning} />
+                        <Text style={[styles.actionButtonText, styles.leaveButtonText]}>Leave Project</Text>
                     </TouchableOpacity>
                 )}
 
@@ -465,6 +504,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.secondary,
         fontWeight: '500',
+    },
+    leaveButton: {
+        borderColor: theme.colors.warning || '#f39c12',
+    },
+    leaveButtonText: {
+        color: theme.colors.warning || '#f39c12',
     },
 });
 
