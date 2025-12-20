@@ -606,20 +606,47 @@ def change_password():
     return render_template("change_password.html")
 
 @app.route("/api/delete-account", methods=["POST", "DELETE"])
-@login_required
 def delete_account():
     """Delete user account from Firebase and MongoDB, remove from all projects."""
     try:
-        user_id = current_user.id
-        user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        user_id = None
+        user_data = None
+        firebase_uid = None
+        
+        # Try to get user from session first (web or authenticated API)
+        if current_user.is_authenticated:
+            user_id = current_user.id
+            user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        else:
+            # For mobile app, try to get Firebase UID from request body or auth header
+            data = request.get_json() if request.is_json else {}
+            firebase_uid = data.get('firebase_uid')
+            
+            # Also try to verify Firebase token
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+                try:
+                    from firebase_config import verify_firebase_token, init_firebase
+                    init_firebase()
+                    decoded_token = verify_firebase_token(token)
+                    firebase_uid = decoded_token['uid']
+                except Exception as e:
+                    logger.warning(f"Could not verify Firebase token for delete: {e}")
+            
+            if firebase_uid:
+                # Look up user by Firebase UID
+                user_data = mongo.db.users.find_one({"firebase_uid": firebase_uid})
+                if user_data:
+                    user_id = str(user_data["_id"])
         
         if not user_data:
-            return jsonify({"success": False, "error": "User not found"}), 404
+            return jsonify({"success": False, "error": "User not found. Please login again."}), 404
         
-        logger.info(f"Deleting account for user {user_id}")
+        logger.info(f"Deleting account for user {user_id}, firebase_uid: {firebase_uid}")
         
         # 1. Delete Firebase user if linked
-        firebase_uid = user_data.get('firebase_uid')
+        firebase_uid = user_data.get('firebase_uid') or firebase_uid
         if firebase_uid:
             try:
                 from firebase_config import init_firebase
@@ -640,17 +667,14 @@ def delete_account():
         logger.info(f"Removed user from team memberships")
         
         # 3. Delete projects created by this user (or optionally transfer ownership)
-        # For now, we'll delete projects where user is the only member
         user_created_projects = list(mongo.db.projects.find({"created_by": user_id}))
         for project in user_created_projects:
             project_id = str(project["_id"])
-            # If user is the only team member, delete the project and its tasks
             if len(project.get("team_members", [])) <= 1:
                 mongo.db.tasks.delete_many({"project_id": project_id})
                 mongo.db.projects.delete_one({"_id": project["_id"]})
                 logger.info(f"Deleted project {project_id} (user was only member)")
             else:
-                # Transfer ownership to another team member
                 other_members = [m for m in project.get("team_members", []) if m != user_id]
                 if other_members:
                     mongo.db.projects.update_one(
@@ -668,15 +692,16 @@ def delete_account():
         # 5. Delete user's notifications
         mongo.db.notifications.delete_many({"user_id": ObjectId(user_id)})
         
-        # 6. Delete user's chat messages (optional - could keep for history)
+        # 6. Delete user's chat messages
         mongo.db.chat_messages.delete_many({"user_id": user_id})
         
         # 7. Delete the user document from MongoDB
         mongo.db.users.delete_one({"_id": ObjectId(user_id)})
         logger.info(f"Deleted user document from MongoDB")
         
-        # 8. Logout the user
-        logout_user()
+        # 8. Logout the user if authenticated via session
+        if current_user.is_authenticated:
+            logout_user()
         
         # Return success for API (mobile app)
         if request.content_type and ('application/json' in request.content_type or 'multipart/form-data' in request.content_type):

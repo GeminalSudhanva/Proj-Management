@@ -141,8 +141,12 @@ export const AuthProvider = ({ children }) => {
             const api = require('../services/api').default;
             const { API_ENDPOINTS } = require('../constants/config');
 
-            // 1. Call backend to delete all user data
-            const response = await api.delete(API_ENDPOINTS.DELETE_ACCOUNT);
+            // Get current Firebase user for UID
+            const firebaseUser = firebaseAuth.getCurrentUser();
+            const firebase_uid = firebaseUser?.uid || user?.id;
+
+            // 1. Call backend to delete all user data (POST with firebase_uid)
+            const response = await api.post(API_ENDPOINTS.DELETE_ACCOUNT, { firebase_uid });
 
             if (response.data.success) {
                 // 2. Delete Firebase account
@@ -164,7 +168,7 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Delete account error:', error);
-            return { success: false, error: error.message || 'Failed to delete account' };
+            return { success: false, error: error.message || error.error || 'Failed to delete account' };
         }
     };
 
