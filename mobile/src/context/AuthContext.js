@@ -18,17 +18,43 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    // Helper to sync user with backend (defined inline to avoid hoisting issues)
+    const syncWithBackend = async (firebaseUser) => {
+        try {
+            const api = require('../services/api').default;
+            const { API_ENDPOINTS } = require('../constants/config');
+
+            const response = await api.post(API_ENDPOINTS.FIREBASE_SYNC, {
+                firebase_uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                name: firebaseUser.displayName || firebaseUser.email.split('@')[0]
+            });
+
+            console.log('Auth state sync - MongoDB user_id:', response.data.user_id);
+            return response.data.user_id;
+        } catch (error) {
+            console.warn('Auth state sync failed:', error);
+            return null;
+        }
+    };
+
     // Listen for Firebase auth state changes
     useEffect(() => {
         const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
             if (firebaseUser) {
+                // Sync with backend to get MongoDB user ID
+                const mongoUserId = await syncWithBackend(firebaseUser);
+
                 // User is signed in
                 const userData = {
-                    id: firebaseUser.uid,
+                    id: mongoUserId || firebaseUser.uid, // Prefer MongoDB ID
+                    firebaseUid: firebaseUser.uid, // Keep Firebase UID for auth operations
                     name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
                     email: firebaseUser.email,
                     emailVerified: firebaseUser.emailVerified,
                 };
+
+                console.log('Auth state - user.id:', userData.id, 'firebaseUid:', userData.firebaseUid);
 
                 await storeUserData(userData);
                 setUser(userData);
