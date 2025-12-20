@@ -285,20 +285,17 @@ def handle_api_authentication():
     1. Firebase ID tokens (from mobile app with Firebase Auth)
     2. Firebase UID lookup (when Admin SDK is not available)
     3. Legacy user_id tokens (for backward compatibility)
+    
+    IMPORTANT: JWT auth takes precedence over session auth when Authorization header is present.
+    This ensures mobile app users are authenticated with the correct account.
     """
-    print(f"[DEBUG AUTH] Request to {request.path}")
-    print(f"[DEBUG AUTH] current_user.is_authenticated: {current_user.is_authenticated}")
-    if current_user.is_authenticated:
-        print(f"[DEBUG AUTH] Already authenticated as: {current_user.id}, email: {current_user.email}")
-    
-    # Skip if user is already logged in via session
-    if current_user.is_authenticated:
-        return
-    
-    # Check for Authorization header
+    # Check for Authorization header FIRST
     auth_header = request.headers.get('Authorization')
-    print(f"[DEBUG AUTH] Authorization header present: {auth_header is not None}")
+    
+    # If Authorization header is present, process JWT auth (even if session exists)
+    # This ensures the correct user is used for API requests
     if auth_header and auth_header.startswith('Bearer '):
+        print(f"[DEBUG AUTH] Request to {request.path} with Authorization header")
         token = auth_header.split(' ')[1]
         print(f"[DEBUG AUTH] Token starts with: {token[:20]}...")
         
