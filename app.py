@@ -2545,6 +2545,80 @@ def handle_disconnect():
     else:
         print('Anonymous client disconnected')
 
+# Global Chat Socket Handlers
+@socketio.on('send_global_message')
+def handle_send_global_message(data):
+    """Handle sending a message to global chat"""
+    try:
+        text = data.get('text', '')
+        user_id = data.get('userId', '')
+        user_name = data.get('userName', 'Anonymous')
+        
+        if not text or not user_id:
+            return
+        
+        # Create message with ISO format timestamp (with Z for UTC)
+        message = {
+            'text': text,
+            'userId': user_id,
+            'userName': user_name,
+            'room_type': 'global',
+            'createdAt': datetime.utcnow().isoformat() + 'Z'  # ISO format with UTC indicator
+        }
+        
+        # Save to database
+        result = mongo.db.global_messages.insert_one(message)
+        message['_id'] = str(result.inserted_id)
+        
+        # Broadcast to all connected clients
+        emit('new_global_message', message, broadcast=True)
+        
+    except Exception as e:
+        logger.error(f"Error in send_global_message: {e}")
+
+@socketio.on('get_global_messages')
+def handle_get_global_messages():
+    """Get global chat message history"""
+    try:
+        # Get last 100 messages, sorted by createdAt
+        messages = list(mongo.db.global_messages.find().sort('createdAt', -1).limit(100))
+        
+        # Format messages for client
+        formatted = []
+        for msg in messages:
+            formatted.append({
+                '_id': str(msg['_id']),
+                'text': msg.get('text', ''),
+                'userId': msg.get('userId', ''),
+                'userName': msg.get('userName', 'Anonymous'),
+                'createdAt': msg.get('createdAt', datetime.utcnow().isoformat() + 'Z')
+            })
+        
+        emit('global_messages_history', formatted)
+        
+    except Exception as e:
+        logger.error(f"Error in get_global_messages: {e}")
+        emit('global_messages_history', [])
+
+@socketio.on('delete_global_message')
+def handle_delete_global_message(data):
+    """Delete a global chat message"""
+    try:
+        message_id = data.get('messageId', '')
+        user_id = data.get('userId', '')
+        
+        if not message_id:
+            return
+        
+        # Only allow deletion of own messages
+        message = mongo.db.global_messages.find_one({'_id': ObjectId(message_id)})
+        if message and message.get('userId') == user_id:
+            mongo.db.global_messages.delete_one({'_id': ObjectId(message_id)})
+            emit('message_deleted', {'type': 'global', 'messageId': message_id}, broadcast=True)
+        
+    except Exception as e:
+        logger.error(f"Error in delete_global_message: {e}")
+
 @socketio.on('send_message')
 def handle_send_message(data):
     if current_user.is_authenticated:
