@@ -286,14 +286,21 @@ def handle_api_authentication():
     2. Firebase UID lookup (when Admin SDK is not available)
     3. Legacy user_id tokens (for backward compatibility)
     """
+    print(f"[DEBUG AUTH] Request to {request.path}")
+    print(f"[DEBUG AUTH] current_user.is_authenticated: {current_user.is_authenticated}")
+    if current_user.is_authenticated:
+        print(f"[DEBUG AUTH] Already authenticated as: {current_user.id}, email: {current_user.email}")
+    
     # Skip if user is already logged in via session
     if current_user.is_authenticated:
         return
     
     # Check for Authorization header
     auth_header = request.headers.get('Authorization')
+    print(f"[DEBUG AUTH] Authorization header present: {auth_header is not None}")
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
+        print(f"[DEBUG AUTH] Token starts with: {token[:20]}...")
         
         # Try Firebase token verification first (requires service account)
         try:
