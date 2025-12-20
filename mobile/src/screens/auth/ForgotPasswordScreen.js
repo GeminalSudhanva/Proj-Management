@@ -8,12 +8,14 @@ import {
     ScrollView,
     Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { theme } from '../../constants/theme';
-import * as authService from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 
 const ForgotPasswordScreen = ({ navigation }) => {
+    const { forgotPassword } = useAuth();
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -31,12 +33,16 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
-            await authService.forgotPassword(email);
-            Alert.alert(
-                'Success',
-                'Password reset instructions have been sent to your email.',
-                [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-            );
+            const result = await forgotPassword(email);
+            if (result.success) {
+                Alert.alert(
+                    'Success',
+                    'Password reset email has been sent. Check your inbox.',
+                    [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+                );
+            } else {
+                Alert.alert('Error', result.error || 'Failed to send reset email');
+            }
         } catch (err) {
             Alert.alert('Error', err.message || 'Failed to send reset email');
         } finally {

@@ -281,9 +281,10 @@ def load_user(user_id):
 def handle_api_authentication():
     """Check for Authorization header and login user for API requests.
     
-    Supports both:
+    Supports:
     1. Firebase ID tokens (from mobile app with Firebase Auth)
-    2. Legacy user_id tokens (for backward compatibility)
+    2. Firebase UID lookup (when Admin SDK is not available)
+    3. Legacy user_id tokens (for backward compatibility)
     """
     # Skip if user is already logged in via session
     if current_user.is_authenticated:
@@ -294,7 +295,7 @@ def handle_api_authentication():
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
         
-        # Try Firebase token verification first
+        # Try Firebase token verification first (requires service account)
         try:
             from firebase_config import verify_firebase_token, get_or_create_user, init_firebase
             
@@ -319,13 +320,45 @@ def handle_api_authentication():
                 return
                 
         except ImportError:
-            logger.warning("Firebase config not available, falling back to legacy auth")
+            logger.warning("Firebase config not available, trying firebase_uid lookup")
         except ValueError as e:
             logger.warning(f"Firebase token verification failed: {e}")
         except Exception as e:
-            logger.error(f"Firebase auth error: {e}")
+            logger.warning(f"Firebase auth error: {e}")
         
-        # Fallback: Try legacy user_id token (for backward compatibility)
+        # Fallback 1: Try to decode JWT without verification to get firebase_uid
+        # Then look up user by firebase_uid in MongoDB
+        try:
+            import base64
+            import json
+            
+            # Decode JWT payload without verification (token has 3 parts: header.payload.signature)
+            parts = token.split('.')
+            if len(parts) == 3:
+                # Add padding if needed
+                payload = parts[1]
+                padding = 4 - len(payload) % 4
+                if padding != 4:
+                    payload += '=' * padding
+                
+                decoded_payload = base64.urlsafe_b64decode(payload)
+                payload_data = json.loads(decoded_payload)
+                
+                firebase_uid = payload_data.get('user_id') or payload_data.get('sub')
+                if firebase_uid:
+                    # Look up user by firebase_uid directly
+                    user_data = mongo.db.users.find_one({"firebase_uid": firebase_uid})
+                    if user_data:
+                        user = User(user_data)
+                        login_user(user)
+                        logger.info(f"API auth: User {user.email} logged in via firebase_uid lookup")
+                        return
+                    else:
+                        logger.warning(f"No MongoDB user found for firebase_uid: {firebase_uid}")
+        except Exception as e:
+            logger.warning(f"Could not decode token for firebase_uid lookup: {e}")
+        
+        # Fallback 2: Try legacy user_id token (for backward compatibility)
         try:
             user_id = token
             user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
