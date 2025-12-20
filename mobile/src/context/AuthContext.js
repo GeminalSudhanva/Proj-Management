@@ -49,6 +49,24 @@ export const AuthProvider = ({ children }) => {
         return () => unsubscribe();
     }, []);
 
+    // Sync Firebase user to MongoDB backend
+    const syncUserToBackend = async (firebaseUser) => {
+        try {
+            const api = require('../services/api').default;
+            const { API_ENDPOINTS } = require('../constants/config');
+
+            await api.post(API_ENDPOINTS.FIREBASE_SYNC, {
+                firebase_uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                name: firebaseUser.displayName || firebaseUser.email.split('@')[0]
+            });
+            console.log('User synced to backend');
+        } catch (error) {
+            console.warn('Failed to sync user to backend:', error);
+            // Don't fail login/register if sync fails - user can still use app
+        }
+    };
+
     const login = async (email, password) => {
         try {
             const result = await firebaseAuth.signIn(email, password);
@@ -63,6 +81,9 @@ export const AuthProvider = ({ children }) => {
             await storeUserData(userData);
             setUser(userData);
             setIsAuthenticated(true);
+
+            // Sync user to MongoDB backend
+            await syncUserToBackend(result.user);
 
             // Log analytics event
             await analyticsService.logLogin();
@@ -88,6 +109,9 @@ export const AuthProvider = ({ children }) => {
             await storeUserData(userData);
             setUser(userData);
             setIsAuthenticated(true);
+
+            // Sync user to MongoDB backend
+            await syncUserToBackend({ ...result.user, displayName: name });
 
             // Log analytics event
             await analyticsService.logSignUp();

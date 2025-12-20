@@ -434,6 +434,71 @@ def register():
         flash(f"Registration failed: {str(e)}")
         return render_template("register.html")
 
+@app.route("/api/firebase-sync", methods=["POST"])
+def firebase_sync():
+    """
+    Sync Firebase user to MongoDB.
+    Called by mobile app after Firebase signup/login to ensure MongoDB user exists.
+    """
+    try:
+        data = request.get_json() if request.is_json else {}
+        
+        firebase_uid = data.get('firebase_uid')
+        email = data.get('email', '').lower()
+        name = data.get('name', '')
+        
+        if not firebase_uid or not email:
+            return jsonify({"success": False, "error": "firebase_uid and email are required"}), 400
+        
+        # Check if user already exists by firebase_uid
+        existing_user = mongo.db.users.find_one({"firebase_uid": firebase_uid})
+        if existing_user:
+            return jsonify({
+                "success": True, 
+                "message": "User already synced",
+                "user_id": str(existing_user["_id"]),
+                "is_new": False
+            })
+        
+        # Check if user exists by email (legacy user)
+        existing_by_email = mongo.db.users.find_one({"email": email})
+        if existing_by_email:
+            # Link Firebase UID to existing user
+            mongo.db.users.update_one(
+                {"_id": existing_by_email["_id"]},
+                {"$set": {"firebase_uid": firebase_uid}}
+            )
+            logger.info(f"Linked Firebase UID {firebase_uid} to existing user {email}")
+            return jsonify({
+                "success": True,
+                "message": "Firebase linked to existing account",
+                "user_id": str(existing_by_email["_id"]),
+                "is_new": False
+            })
+        
+        # Create new user
+        new_user = {
+            "firebase_uid": firebase_uid,
+            "email": email,
+            "name": name or email.split('@')[0],
+            "joined_projects": [],
+            "created_at": datetime.now()
+        }
+        
+        result = mongo.db.users.insert_one(new_user)
+        logger.info(f"Created new MongoDB user for Firebase UID {firebase_uid}")
+        
+        return jsonify({
+            "success": True,
+            "message": "User created successfully",
+            "user_id": str(result.inserted_id),
+            "is_new": True
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in firebase_sync: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")  # Prevent brute force attacks
 def login():

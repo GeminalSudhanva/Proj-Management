@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: '/reset-password',
     CHANGE_PASSWORD: '/change-password',
     DELETE_ACCOUNT: '/api/delete-account',
+    FIREBASE_SYNC: '/api/firebase-sync',
 
     // Profile
     EDIT_PROFILE: '/profile/edit',
