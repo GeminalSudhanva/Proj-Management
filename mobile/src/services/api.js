@@ -1,25 +1,27 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../constants/config';
-import { getToken } from '../utils/storage';
+import * as firebaseAuth from './firebaseAuthService';
 
 // Create axios instance
 const api = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 10000,
+    timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
     },
-    // Note: withCredentials might not work properly in React Native
-    // Flask session will still work via Set-Cookie headers
-    // withCredentials: true,
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add Firebase ID token
 api.interceptors.request.use(
     async (config) => {
-        const token = await getToken();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        try {
+            // Get Firebase ID token for authentication
+            const token = await firebaseAuth.getIdToken();
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        } catch (error) {
+            console.warn('Failed to get auth token:', error);
         }
         return config;
     },
@@ -40,8 +42,8 @@ api.interceptors.response.use(
 
             if (status === 401) {
                 // Unauthorized - token expired or invalid
-                // You can dispatch logout action here
-                console.log('Unauthorized - please login again');
+                console.log('Unauthorized - Firebase token may be expired');
+                // Token will auto-refresh on next request
             } else if (status === 404) {
                 console.log('Resource not found');
             } else if (status === 500) {

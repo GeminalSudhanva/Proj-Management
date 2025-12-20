@@ -279,7 +279,12 @@ def load_user(user_id):
 # Handle JWT/Bearer token authentication for mobile API requests
 @app.before_request
 def handle_api_authentication():
-    """Check for Authorization header and login user for API requests"""
+    """Check for Authorization header and login user for API requests.
+    
+    Supports both:
+    1. Firebase ID tokens (from mobile app with Firebase Auth)
+    2. Legacy user_id tokens (for backward compatibility)
+    """
     # Skip if user is already logged in via session
     if current_user.is_authenticated:
         return
@@ -288,16 +293,48 @@ def handle_api_authentication():
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
+        
+        # Try Firebase token verification first
         try:
-            # The token is the user_id (from mobile app login)
+            from firebase_config import verify_firebase_token, get_or_create_user, init_firebase
+            
+            # Initialize Firebase if not already done
+            try:
+                init_firebase()
+            except Exception:
+                pass  # Already initialized
+            
+            decoded_token = verify_firebase_token(token)
+            firebase_uid = decoded_token['uid']
+            email = decoded_token.get('email', '')
+            display_name = decoded_token.get('name', '')
+            
+            # Get or create user in MongoDB
+            user_data = get_or_create_user(firebase_uid, email, display_name)
+            
+            if user_data:
+                user = User(user_data)
+                login_user(user)
+                logger.info(f"API auth: User {email} logged in via Firebase token")
+                return
+                
+        except ImportError:
+            logger.warning("Firebase config not available, falling back to legacy auth")
+        except ValueError as e:
+            logger.warning(f"Firebase token verification failed: {e}")
+        except Exception as e:
+            logger.error(f"Firebase auth error: {e}")
+        
+        # Fallback: Try legacy user_id token (for backward compatibility)
+        try:
             user_id = token
             user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
             if user_data:
                 user = User(user_data)
                 login_user(user)
-                logger.info(f"API auth: User {user.email} logged in via Bearer token")
+                logger.info(f"API auth: User {user.email} logged in via legacy Bearer token")
         except Exception as e:
-            logger.error(f"Error in API authentication: {e}")
+            logger.error(f"Error in legacy API authentication: {e}")
 
 # Routes
 @app.route("/")

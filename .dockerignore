@@ -1,0 +1,56 @@
+# Git ignore patterns
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Local development
+.env
+.env.local
+*.local
+
+# Vercel (not needed for Cloud Run)
+.vercel/
+vercel.json
+
+# Mobile app folders (not needed for backend)
+mobile/
+
+# Documentation
+*.md
+!README.md
+
+# Service account keys (should be in secret manager)
+service-account*.json
+*-credentials.json

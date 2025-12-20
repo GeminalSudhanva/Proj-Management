@@ -1,6 +1,11 @@
 # Environment variables
 .env
 
+# Firebase/Google Cloud service account keys (NEVER commit these!)
+*-firebase-adminsdk*.json
+service-account*.json
+*-credentials.json
+
 # Python
 __pycache__/
 *.py[cod]

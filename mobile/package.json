@@ -23,6 +23,7 @@
     "expo-linear-gradient": "~15.0.8",
     "expo-modules-core": "~3.0.29",
     "expo-status-bar": "~3.0.9",
+    "firebase": "^9.23.0",
     "formik": "^2.4.9",
     "install": "^0.13.0",
     "react": "19.1.0",
