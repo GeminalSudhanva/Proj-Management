@@ -334,6 +334,7 @@ def handle_api_authentication():
             
             # Decode JWT payload without verification (token has 3 parts: header.payload.signature)
             parts = token.split('.')
+            logger.info(f"API auth: JWT has {len(parts)} parts")
             if len(parts) == 3:
                 # Add padding if needed
                 payload = parts[1]
@@ -345,11 +346,15 @@ def handle_api_authentication():
                 payload_data = json.loads(decoded_payload)
                 
                 firebase_uid = payload_data.get('user_id') or payload_data.get('sub')
+                logger.info(f"API auth: Decoded firebase_uid from JWT: {firebase_uid}")
+                
                 if firebase_uid:
                     # Look up user by firebase_uid directly
                     user_data = mongo.db.users.find_one({"firebase_uid": firebase_uid})
+                    logger.info(f"API auth: Found user_data: {user_data.get('email') if user_data else 'None'}")
                     if user_data:
                         user = User(user_data)
+                        logger.info(f"API auth: User object id={user.id}, email={user.email}")
                         login_user(user)
                         logger.info(f"API auth: User {user.email} logged in via firebase_uid lookup")
                         return
