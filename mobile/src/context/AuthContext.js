@@ -49,21 +49,25 @@ export const AuthProvider = ({ children }) => {
         return () => unsubscribe();
     }, []);
 
-    // Sync Firebase user to MongoDB backend
+    // Sync Firebase user to MongoDB backend and get MongoDB user ID
     const syncUserToBackend = async (firebaseUser) => {
         try {
             const api = require('../services/api').default;
             const { API_ENDPOINTS } = require('../constants/config');
 
-            await api.post(API_ENDPOINTS.FIREBASE_SYNC, {
+            const response = await api.post(API_ENDPOINTS.FIREBASE_SYNC, {
                 firebase_uid: firebaseUser.uid,
                 email: firebaseUser.email,
                 name: firebaseUser.displayName || firebaseUser.email.split('@')[0]
             });
-            console.log('User synced to backend');
+
+            console.log('User synced to backend:', response.data);
+            // Return the MongoDB user_id for use in permission checks
+            return response.data.user_id;
         } catch (error) {
             console.warn('Failed to sync user to backend:', error);
             // Don't fail login/register if sync fails - user can still use app
+            return null;
         }
     };
 
@@ -71,8 +75,12 @@ export const AuthProvider = ({ children }) => {
         try {
             const result = await firebaseAuth.signIn(email, password);
 
+            // Sync user to MongoDB backend and get MongoDB ID
+            const mongoUserId = await syncUserToBackend(result.user);
+
             const userData = {
-                id: result.user.uid,
+                id: mongoUserId || result.user.uid, // Prefer MongoDB ID for permission checks
+                firebaseUid: result.user.uid, // Keep Firebase UID for auth operations
                 name: result.user.displayName || email.split('@')[0],
                 email: result.user.email,
                 emailVerified: result.user.emailVerified,
@@ -81,9 +89,6 @@ export const AuthProvider = ({ children }) => {
             await storeUserData(userData);
             setUser(userData);
             setIsAuthenticated(true);
-
-            // Sync user to MongoDB backend
-            await syncUserToBackend(result.user);
 
             // Log analytics event
             await analyticsService.logLogin();
@@ -99,8 +104,12 @@ export const AuthProvider = ({ children }) => {
         try {
             const result = await firebaseAuth.signUp(email, password, name);
 
+            // Sync user to MongoDB backend and get MongoDB ID
+            const mongoUserId = await syncUserToBackend({ ...result.user, displayName: name });
+
             const userData = {
-                id: result.user.uid,
+                id: mongoUserId || result.user.uid, // Prefer MongoDB ID for permission checks
+                firebaseUid: result.user.uid, // Keep Firebase UID for auth operations
                 name: name,
                 email: result.user.email,
                 emailVerified: result.user.emailVerified,
@@ -109,9 +118,6 @@ export const AuthProvider = ({ children }) => {
             await storeUserData(userData);
             setUser(userData);
             setIsAuthenticated(true);
-
-            // Sync user to MongoDB backend
-            await syncUserToBackend({ ...result.user, displayName: name });
 
             // Log analytics event
             await analyticsService.logSignUp();
@@ -165,9 +171,9 @@ export const AuthProvider = ({ children }) => {
             const api = require('../services/api').default;
             const { API_ENDPOINTS } = require('../constants/config');
 
-            // Get current Firebase user for UID
+            // Get Firebase UID (from user context or current Firebase user)
             const firebaseUser = firebaseAuth.getCurrentUser();
-            const firebase_uid = firebaseUser?.uid || user?.id;
+            const firebase_uid = user?.firebaseUid || firebaseUser?.uid || user?.id;
 
             // 1. Call backend to delete all user data (POST with firebase_uid)
             const response = await api.post(API_ENDPOINTS.DELETE_ACCOUNT, { firebase_uid });
