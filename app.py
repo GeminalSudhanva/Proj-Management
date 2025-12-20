@@ -295,9 +295,7 @@ def handle_api_authentication():
     # If Authorization header is present, process JWT auth (even if session exists)
     # This ensures the correct user is used for API requests
     if auth_header and auth_header.startswith('Bearer '):
-        print(f"[DEBUG AUTH] Request to {request.path} with Authorization header")
         token = auth_header.split(' ')[1]
-        print(f"[DEBUG AUTH] Token starts with: {token[:20]}...")
         
         # Try Firebase token verification first (requires service account)
         try:
