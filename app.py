@@ -2601,12 +2601,24 @@ def handle_get_global_messages():
         # Format messages for client
         formatted = []
         for msg in messages:
+            # Ensure timestamp has Z suffix for proper timezone handling
+            created_at = msg.get('createdAt', '')
+            if created_at:
+                # Handle datetime objects
+                if hasattr(created_at, 'isoformat'):
+                    created_at = created_at.isoformat() + 'Z'
+                # Handle strings without Z suffix
+                elif isinstance(created_at, str) and not created_at.endswith('Z'):
+                    created_at = created_at + 'Z'
+            else:
+                created_at = datetime.utcnow().isoformat() + 'Z'
+                
             formatted.append({
                 '_id': str(msg['_id']),
                 'text': msg.get('text', ''),
                 'userId': msg.get('userId', ''),
                 'userName': msg.get('userName', 'Anonymous'),
-                'createdAt': msg.get('createdAt', datetime.utcnow().isoformat() + 'Z')
+                'createdAt': created_at
             })
         
         emit('global_messages_history', formatted)
