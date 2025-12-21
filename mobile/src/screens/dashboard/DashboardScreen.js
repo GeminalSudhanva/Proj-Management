@@ -98,17 +98,45 @@ const DashboardScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
             >
-                <View style={styles.headerLeft}>
-                    <Avatar user={user} size="medium" showBorder={true} style={styles.avatar} />
-                    <View>
+                <View style={styles.headerContent}>
+                    <View style={styles.headerTop}>
+                        <TouchableOpacity
+                            style={styles.avatarContainer}
+                            onPress={() => navigation.navigate('Profile')}
+                            activeOpacity={0.8}
+                        >
+                            <Avatar user={user} size="large" showBorder={true} />
+                            <View style={styles.onlineIndicator} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.notificationBtn}
+                            onPress={() => navigation.navigate('Notifications')}
+                        >
+                            <Ionicons name="notifications-outline" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.greetingContainer}>
                         <Text style={styles.greeting}>
-                            Welcome back, {user?.name?.split(' ')[0] || 'User'} 👋
+                            {(() => {
+                                const hour = new Date().getHours();
+                                if (hour < 12) return 'Good Morning';
+                                if (hour < 17) return 'Good Afternoon';
+                                return 'Good Evening';
+                            })()}
                         </Text>
-                        <Text style={styles.subtitle}>Let's make some progress today</Text>
+                        <Text style={styles.userName}>
+                            {user?.name || 'User'} 👋
+                        </Text>
+                        <Text style={styles.dateText}>
+                            {new Date().toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                month: 'short',
+                                day: 'numeric'
+                            })}
+                        </Text>
                     </View>
                 </View>
-
-
             </LinearGradient>
 
             {/* QUICK ACTIONS */}
@@ -283,37 +311,59 @@ const styles = StyleSheet.create({
 
     /* HEADER */
     header: {
-        paddingTop: theme.spacing.xxl,
+        paddingTop: theme.spacing.xxl + 10,
         paddingBottom: theme.spacing.xl,
         paddingHorizontal: theme.spacing.lg,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+    },
+    headerContent: {
+        width: '100%',
+    },
+    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
+        marginBottom: theme.spacing.lg,
     },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
+    avatarContainer: {
+        position: 'relative',
     },
-    avatar: {
-        marginRight: theme.spacing.md,
+    onlineIndicator: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#4CD964',
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
+    greetingContainer: {
+        alignItems: 'flex-start',
     },
     greeting: {
-        fontSize: 26,
+        fontSize: 16,
+        fontWeight: '500',
+        color: 'rgba(255,255,255,0.85)',
+        letterSpacing: 0.5,
+    },
+    userName: {
+        fontSize: 28,
         fontWeight: '700',
         color: '#fff',
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#EAEAEA',
         marginTop: 4,
     },
+    dateText: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.7)',
+        marginTop: 8,
+    },
     notificationBtn: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
+        width: 46,
+        height: 46,
+        borderRadius: 23,
         backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
