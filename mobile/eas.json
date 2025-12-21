@@ -11,6 +11,10 @@
     "preview": {
       "distribution": "internal",
       "node": "20.19.4",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EXPO_USE_YARN": "true"
+      },
       "android": {
         "buildType": "apk"
       }
