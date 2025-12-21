@@ -194,6 +194,21 @@ def clean_old_chat_messages():
 # Add the chat cleanup job to the scheduler
 scheduler.add_job(clean_old_chat_messages, 'interval', hours=24)
 
+def keep_alive_ping():
+    """Self-ping to keep Render free tier from sleeping (every 10 minutes)"""
+    import requests
+    try:
+        # Get the app's URL from environment or use default
+        app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://proj-management-mobile.onrender.com')
+        response = requests.get(f"{app_url}/health", timeout=30)
+        logger.info(f"Keep-alive ping: {response.status_code}")
+    except Exception as e:
+        logger.warning(f"Keep-alive ping failed: {e}")
+
+# Add keep-alive ping job (every 10 minutes to prevent Render free tier sleep)
+scheduler.add_job(keep_alive_ping, 'interval', minutes=10)
+
+
 # Start the scheduler
 scheduler.start()
 

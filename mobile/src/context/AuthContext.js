@@ -18,8 +18,11 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Helper to sync user with backend (defined inline to avoid hoisting issues)
-    const syncWithBackend = async (firebaseUser) => {
+    // Helper to sync user with backend with retry mechanism for cold starts
+    const syncWithBackend = async (firebaseUser, retryCount = 0) => {
+        const MAX_RETRIES = 3;
+        const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
+
         try {
             const api = require('../services/api').default;
             const { API_ENDPOINTS } = require('../constants/config');
@@ -33,7 +36,16 @@ export const AuthProvider = ({ children }) => {
             console.log('Auth state sync - MongoDB user_id:', response.data.user_id);
             return response.data.user_id;
         } catch (error) {
-            console.warn('Auth state sync failed:', error);
+            // Retry on network errors (cold start scenarios)
+            if (retryCount < MAX_RETRIES) {
+                const delay = RETRY_DELAYS[retryCount] || 4000;
+                console.log(`Sync failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return syncWithBackend(firebaseUser, retryCount + 1);
+            }
+
+            console.warn('Auth state sync failed after retries:', error.message);
             return null;
         }
     };
