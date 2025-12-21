@@ -164,6 +164,10 @@ const ChatScreen = () => {
             style={styles.container}
             keyboardVerticalOffset={90}
         >
+            <View style={styles.titleHeader}>
+                <Ionicons name="globe-outline" size={20} color={theme.colors.primary} />
+                <Text style={styles.titleText}>Global Chat</Text>
+            </View>
             <View style={styles.header}>
                 <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.headerText}>Messages auto-delete after 24 hours</Text>
@@ -321,11 +325,26 @@ const styles = StyleSheet.create({
     sendButtonDisabled: {
         backgroundColor: theme.colors.border,
     },
+    titleHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.md,
+        backgroundColor: theme.colors.card,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+    },
+    titleText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.colors.text,
+        marginLeft: theme.spacing.sm,
+    },
     emptyContainer: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: theme.spacing.xxl,
-        transform: [{ scaleY: -1 }],
     },
     emptyText: {
         fontSize: 18,
