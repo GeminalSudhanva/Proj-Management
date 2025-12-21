@@ -343,7 +343,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: theme.spacing.xxl,
-        transform: [{ scaleY: -1 }],
     },
     emptyText: {
         fontSize: 18,
