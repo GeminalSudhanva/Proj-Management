@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import TaskCard from '../../components/TaskCard';
@@ -22,9 +23,12 @@ const ProjectDetailsScreen = ({ route, navigation }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchProjectDetails();
-    }, []);
+    // Refresh data whenever screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchProjectDetails();
+        }, [projectId])
+    );
 
     const fetchProjectDetails = async () => {
         try {
