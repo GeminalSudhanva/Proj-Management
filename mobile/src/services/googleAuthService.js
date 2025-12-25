@@ -17,9 +17,10 @@ const GOOGLE_WEB_CLIENT_ID = '935100277148-bm3kslfsenduk0jep6ndeon1cokvm274.apps
  */
 export const useGoogleAuth = () => {
     const [request, response, promptAsync] = Google.useAuthRequest({
+        expoClientId: GOOGLE_WEB_CLIENT_ID,  // For Expo Go
         webClientId: GOOGLE_WEB_CLIENT_ID,
-        // For Android, we use the web client ID
         androidClientId: GOOGLE_WEB_CLIENT_ID,
+        scopes: ['profile', 'email'],
     });
 
     return { request, response, promptAsync };
