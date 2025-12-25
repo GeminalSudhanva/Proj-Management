@@ -8,7 +8,7 @@
       "node": "20.19.4",
       "env": {
         "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
-        "EAS_NO_LOCKFILE": "true"
+        "EXPO_USE_YARN": "true"
       }
     },
     "development": {
