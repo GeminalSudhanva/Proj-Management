@@ -23,6 +23,13 @@
         "buildType": "apk"
       }
     },
+    "release": {
+      "extends": "base",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
       "extends": "base",
       "autoIncrement": true
