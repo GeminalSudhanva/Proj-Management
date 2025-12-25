@@ -3,7 +3,6 @@
 
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase configuration from google-services.json
 const firebaseConfig = {
@@ -22,11 +21,9 @@ if (!firebase.apps.length) {
 
 const auth = firebase.auth();
 
-// Enable persistence with AsyncStorage for React Native
-// This keeps users logged in between app restarts
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
-    console.warn('Auth persistence error:', error);
-});
+// Note: Firebase compat mode handles persistence automatically in React Native
+// No need to manually set persistence
 
 export { firebase, auth };
 export default firebase;
+
