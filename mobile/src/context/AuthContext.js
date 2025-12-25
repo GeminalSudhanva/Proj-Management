@@ -199,6 +199,38 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Sign in with Google - called after Google auth flow returns idToken
+    const signInWithGoogle = async (idToken) => {
+        try {
+            const googleAuth = require('../services/googleAuthService');
+            const result = await googleAuth.signInWithGoogleCredential(idToken);
+
+            // Sync user to MongoDB backend and get MongoDB ID
+            const mongoUserId = await syncUserToBackend(result.user);
+
+            const userData = {
+                id: mongoUserId || result.user.uid,
+                firebaseUid: result.user.uid,
+                name: result.user.displayName || result.user.email.split('@')[0],
+                email: result.user.email,
+                emailVerified: true, // Google accounts are always verified
+                photoURL: result.user.photoURL,
+            };
+
+            await storeUserData(userData);
+            setUser(userData);
+            setIsAuthenticated(true);
+
+            // Log analytics event
+            await analyticsService.logLogin();
+
+            return { success: true };
+        } catch (error) {
+            console.error('Google sign-in error:', error);
+            return { success: false, error: error.message || 'Google sign-in failed' };
+        }
+    };
+
     const updateUser = async (userData) => {
         try {
             await storeUserData(userData);
@@ -259,6 +291,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         forgotPassword,
+        signInWithGoogle,
         updateUser,
         getAuthToken,
         deleteAccount,

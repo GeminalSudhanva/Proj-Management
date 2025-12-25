@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,20 +8,55 @@ import {
     ScrollView,
     Alert,
     TouchableOpacity,
+    Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useGoogleAuth } from '../../services/googleAuthService';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { theme } from '../../constants/theme';
 
 const RegisterScreen = ({ navigation }) => {
-    const { register } = useAuth();
+    const { register, signInWithGoogle } = useAuth();
+    const { request, response, promptAsync } = useGoogleAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const [errors, setErrors] = useState({});
+
+    // Handle Google auth response
+    useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            handleGoogleSignIn(id_token);
+        } else if (response?.type === 'error') {
+            Alert.alert('Error', 'Google sign-up was cancelled or failed');
+            setGoogleLoading(false);
+        }
+    }, [response]);
+
+    const handleGoogleSignIn = async (idToken) => {
+        setGoogleLoading(true);
+        const result = await signInWithGoogle(idToken);
+        setGoogleLoading(false);
+
+        if (!result.success) {
+            Alert.alert('Google Sign-Up Failed', result.error || 'Please try again');
+        }
+    };
+
+    const handleGooglePress = async () => {
+        setGoogleLoading(true);
+        try {
+            await promptAsync();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to start Google sign-up');
+            setGoogleLoading(false);
+        }
+    };
 
     const validate = () => {
         const newErrors = {};
@@ -80,6 +115,28 @@ const RegisterScreen = ({ navigation }) => {
                     </View>
 
                     <View style={styles.form}>
+                        {/* Google Sign-Up Button - at top for prominence */}
+                        <TouchableOpacity
+                            style={styles.googleButton}
+                            onPress={handleGooglePress}
+                            disabled={!request || googleLoading}
+                        >
+                            <Image
+                                source={{ uri: 'https://www.google.com/favicon.ico' }}
+                                style={styles.googleIcon}
+                            />
+                            <Text style={styles.googleButtonText}>
+                                {googleLoading ? 'Signing up...' : 'Continue with Google'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Divider */}
+                        <View style={styles.dividerContainer}>
+                            <View style={styles.divider} />
+                            <Text style={styles.dividerText}>OR</Text>
+                            <View style={styles.divider} />
+                        </View>
+
                         <Input
                             label="Full Name"
                             value={name}
@@ -189,6 +246,43 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 8,
+    },
+    googleButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: theme.borderRadius.md,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    googleIcon: {
+        width: 20,
+        height: 20,
+        marginRight: 10,
+    },
+    googleButtonText: {
+        fontSize: 16,
+        color: '#333',
+        fontWeight: '500',
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: theme.spacing.lg,
+    },
+    divider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: theme.colors.border || '#E0E0E0',
+    },
+    dividerText: {
+        marginHorizontal: theme.spacing.md,
+        color: theme.colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '500',
     },
     registerButton: {
         marginTop: theme.spacing.md,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,18 +8,54 @@ import {
     ScrollView,
     Alert,
     TouchableOpacity,
+    Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useGoogleAuth } from '../../services/googleAuthService';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { theme } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 const LoginScreen = ({ navigation }) => {
-    const { login } = useAuth();
+    const { login, signInWithGoogle } = useAuth();
+    const { request, response, promptAsync } = useGoogleAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const [errors, setErrors] = useState({});
+
+    // Handle Google auth response
+    useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            handleGoogleSignIn(id_token);
+        } else if (response?.type === 'error') {
+            Alert.alert('Error', 'Google sign-in was cancelled or failed');
+            setGoogleLoading(false);
+        }
+    }, [response]);
+
+    const handleGoogleSignIn = async (idToken) => {
+        setGoogleLoading(true);
+        const result = await signInWithGoogle(idToken);
+        setGoogleLoading(false);
+
+        if (!result.success) {
+            Alert.alert('Google Sign-In Failed', result.error || 'Please try again');
+        }
+    };
+
+    const handleGooglePress = async () => {
+        setGoogleLoading(true);
+        try {
+            await promptAsync();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to start Google sign-in');
+            setGoogleLoading(false);
+        }
+    };
 
     const validate = () => {
         const newErrors = {};
@@ -109,6 +145,28 @@ const LoginScreen = ({ navigation }) => {
                             style={styles.loginButton}
                         />
 
+                        {/* Divider */}
+                        <View style={styles.dividerContainer}>
+                            <View style={styles.divider} />
+                            <Text style={styles.dividerText}>OR</Text>
+                            <View style={styles.divider} />
+                        </View>
+
+                        {/* Google Sign-In Button */}
+                        <TouchableOpacity
+                            style={styles.googleButton}
+                            onPress={handleGooglePress}
+                            disabled={!request || googleLoading}
+                        >
+                            <Image
+                                source={{ uri: 'https://www.google.com/favicon.ico' }}
+                                style={styles.googleIcon}
+                            />
+                            <Text style={styles.googleButtonText}>
+                                {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                            </Text>
+                        </TouchableOpacity>
+
                         <View style={styles.registerContainer}>
                             <Text style={styles.registerText}>Don't have an account? </Text>
                             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
@@ -170,6 +228,43 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         marginTop: theme.spacing.md,
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: theme.spacing.lg,
+    },
+    divider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: theme.colors.border || '#E0E0E0',
+    },
+    dividerText: {
+        marginHorizontal: theme.spacing.md,
+        color: theme.colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    googleButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: theme.borderRadius.md,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    googleIcon: {
+        width: 20,
+        height: 20,
+        marginRight: 10,
+    },
+    googleButtonText: {
+        fontSize: 16,
+        color: '#333',
+        fontWeight: '500',
     },
     registerContainer: {
         flexDirection: 'row',
