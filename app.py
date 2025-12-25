@@ -259,9 +259,143 @@ def create_notification(user_id, message, notification_type, link=None):
             elif notification_type == 'due_date_approaching':
                 subject = f"Task Due Soon: {message.split(': ')[1].split(' is due tomorrow')[0]}"
                 send_email_notification(user['email'], subject, message + f"\nView task: {link}")
+        
+        # Send push notification
+        send_push_notification(user_id, message, notification_type, link)
 
     except Exception as e:
         logger.error(f"Error creating notification for user {user_id}: {e}")
+
+
+# Push Notification Helper Functions
+def send_push_notification(user_id, message, notification_type, link=None):
+    """Send push notification to user's device(s) via Expo Push API"""
+    import requests
+    
+    try:
+        # Get user's push tokens
+        push_tokens = list(mongo.db.push_tokens.find({"user_id": str(user_id)}))
+        
+        if not push_tokens:
+            logger.debug(f"No push tokens found for user {user_id}")
+            return
+        
+        # Prepare notification title based on type
+        title_map = {
+            'task_assigned': '📋 New Task Assigned',
+            'due_date_approaching': '⏰ Task Due Soon',
+            'project_invitation': '👥 Project Invitation',
+            'mentor_request': '🎓 Mentor Request',
+            'mentor_accepted': '✅ Mentor Request Accepted',
+            'team_message': '💬 Team Chat',
+        }
+        title = title_map.get(notification_type, '🔔 Notification')
+        
+        # Prepare Expo push messages
+        messages = []
+        for token_doc in push_tokens:
+            push_token = token_doc.get('token')
+            if push_token and push_token.startswith('ExponentPushToken'):
+                messages.append({
+                    'to': push_token,
+                    'title': title,
+                    'body': message[:200],  # Limit body length
+                    'data': {
+                        'type': notification_type,
+                        'link': link,
+                        'user_id': str(user_id)
+                    },
+                    'sound': 'default',
+                    'channelId': 'tasks' if 'task' in notification_type else 'default',
+                })
+        
+        if not messages:
+            return
+        
+        # Send to Expo Push API
+        response = requests.post(
+            'https://exp.host/--/api/v2/push/send',
+            json=messages,
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            logger.info(f"Push notification sent to {len(messages)} device(s) for user {user_id}")
+        else:
+            logger.warning(f"Push notification failed: {response.status_code} - {response.text}")
+            
+    except Exception as e:
+        logger.error(f"Error sending push notification: {e}")
+
+
+def send_team_chat_push(project_id, sender_id, sender_name, message_text):
+    """Send push notification to all team members except sender for team chat messages"""
+    import requests
+    
+    try:
+        # Get project and team members
+        project = mongo.db.projects.find_one({"_id": ObjectId(project_id)})
+        if not project:
+            return
+        
+        # Collect all team member IDs (creator + team members)
+        team_member_ids = set()
+        if project.get('created_by'):
+            team_member_ids.add(str(project['created_by']))
+        for member in project.get('team_members', []):
+            if isinstance(member, dict):
+                team_member_ids.add(str(member.get('user_id', '')))
+            else:
+                team_member_ids.add(str(member))
+        
+        # Remove sender
+        team_member_ids.discard(str(sender_id))
+        
+        if not team_member_ids:
+            return
+        
+        # Get push tokens for all team members
+        tokens = list(mongo.db.push_tokens.find({"user_id": {"$in": list(team_member_ids)}}))
+        
+        if not tokens:
+            return
+        
+        # Prepare messages
+        messages = []
+        for token_doc in tokens:
+            push_token = token_doc.get('token')
+            if push_token and push_token.startswith('ExponentPushToken'):
+                messages.append({
+                    'to': push_token,
+                    'title': f"💬 {project.get('title', 'Team Chat')}",
+                    'body': f"{sender_name}: {message_text[:100]}",
+                    'data': {
+                        'type': 'team_message',
+                        'project_id': str(project_id),
+                    },
+                    'sound': 'default',
+                    'channelId': 'team-chat',
+                })
+        
+        if messages:
+            response = requests.post(
+                'https://exp.host/--/api/v2/push/send',
+                json=messages,
+                headers={
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                timeout=10
+            )
+            logger.info(f"Team chat push sent to {len(messages)} device(s)")
+            
+    except Exception as e:
+        logger.error(f"Error sending team chat push: {e}")
+
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
@@ -412,6 +546,66 @@ def health_check():
         return jsonify({"status": "healthy", "mongo_connected": mongo is not None})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# Push Token Endpoints
+@app.route("/api/push-token", methods=["POST"])
+def save_push_token():
+    """Save push notification token for a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('userId')
+        token = data.get('token')
+        platform = data.get('platform', 'android')
+        
+        if not user_id or not token:
+            return jsonify({"success": False, "error": "Missing userId or token"}), 400
+        
+        # Upsert the token (update if exists, insert if not)
+        mongo.db.push_tokens.update_one(
+            {"user_id": user_id, "token": token},
+            {
+                "$set": {
+                    "user_id": user_id,
+                    "token": token,
+                    "platform": platform,
+                    "updated_at": datetime.utcnow()
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        
+        logger.info(f"Push token saved for user {user_id}")
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        logger.error(f"Error saving push token: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/push-token", methods=["DELETE"])
+def remove_push_token():
+    """Remove push notification token for a user (on logout)"""
+    try:
+        data = request.get_json()
+        user_id = data.get('userId')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "Missing userId"}), 400
+        
+        # Remove all tokens for this user
+        result = mongo.db.push_tokens.delete_many({"user_id": user_id})
+        
+        logger.info(f"Removed {result.deleted_count} push token(s) for user {user_id}")
+        return jsonify({"success": True, "deleted": result.deleted_count})
+        
+    except Exception as e:
+        logger.error(f"Error removing push token: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/test-mongo")
 def test_mongo():
@@ -2667,15 +2861,10 @@ def handle_send_message(data):
         })
         emit('receive_message', {'username': username, 'message': message_content, 'timestamp': str(timestamp), 'room_id': room_id}, room=room_id)
 
-        # Create notifications for other users in the room who are not currently connected to that room
-        # This part needs more sophisticated logic to only notify users who are part of the room
-        # and not currently active in it. For now, it will notify all users not connected to any chat.
-        all_users = mongo.db.users.find({})
-        for user in all_users:
-            if str(user['_id']) != user_id and str(user['_id']) not in connected_users: # Simplified notification logic
-                notification_message = "New messages"
-                chat_link = url_for('chat', _external=True)
-                create_notification(str(user['_id']), notification_message, 'chat_message', chat_link)
+        # Send push notifications for TEAM chat only (not global chat)
+        if room_type == 'team' or room_type == 'project':
+            # room_id is the project ID for team chats
+            send_team_chat_push(room_id, user_id, username, message_content)
     else:
         print('Anonymous user tried to send a message.')
 

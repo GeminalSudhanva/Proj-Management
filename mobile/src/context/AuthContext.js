@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { storeUserData, getUserData, removeUserData } from '../utils/storage';
 import * as firebaseAuth from '../services/firebaseAuthService';
 import * as analyticsService from '../services/analyticsService';
+import * as notificationService from '../services/notificationService';
 
 const AuthContext = createContext();
 
@@ -74,6 +75,12 @@ export const AuthProvider = ({ children }) => {
 
                 // Set analytics user ID
                 await analyticsService.setAnalyticsUserId(firebaseUser.uid);
+
+                // Register for push notifications
+                const pushToken = await notificationService.registerForPushNotificationsAsync();
+                if (pushToken && mongoUserId) {
+                    await notificationService.savePushTokenToBackend(mongoUserId, pushToken);
+                }
             } else {
                 // User is signed out
                 await removeUserData();
@@ -169,6 +176,10 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
+            // Remove push token before logging out
+            if (user?.id) {
+                await notificationService.removePushToken(user.id);
+            }
             await firebaseAuth.signOut();
             await removeUserData();
             setUser(null);
